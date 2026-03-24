@@ -1,0 +1,382 @@
+<!-- title: Flight Manual -->
+<!-- nav: guide -->
+<!-- desc: Complete API reference for rdbl — signals, computed, effect, batch, directives, bind(), Islands, SSR hydration, and Context. -->
+
+<div class="page-intro">
+  <h1>Flight Manual</h1>
+  <p>Complete reference for every API, directive, and pattern in rdbl. Start at the top — the whole library builds on three primitives.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SIGNALS
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="signals">Signals</h2>
+<p>The entire reactive model. A signal holds a value and notifies observers when it changes.</p>
+
+<pre><code><span class="kw">import</span> { signal } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> count = signal(<span class="num">0</span>)
+
+count()          <span class="com">// → 0        read (tracks dependencies)</span>
+count.set(<span class="num">5</span>)    <span class="com">// write</span>
+count.peek()     <span class="com">// → 5        read WITHOUT tracking</span></code></pre>
+
+<div class="callout">
+  <strong>Why <code>.peek()</code>?</strong>
+  Use it when you need the current value inside a computed or effect but don't want that signal to be a dependency. Common when writing a value back to itself.
+</div>
+
+<h3>Computed</h3>
+<p>Derived state. Lazy — only re-evaluates when its dependencies change. Cached between reads.</p>
+
+<pre><code><span class="kw">import</span> { signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> first = signal(<span class="str">'Neil'</span>)
+<span class="kw">const</span> last  = signal(<span class="str">'Armstrong'</span>)
+
+<span class="kw">const</span> full = computed(() =&gt; <span class="str">`<span class="kw">${</span>first()<span class="kw">} ${</span>last()<span class="kw">}</span>`</span>)
+
+full()           <span class="com">// → 'Neil Armstrong'</span>
+first.set(<span class="str">'Buzz'</span>)
+full()           <span class="com">// → 'Buzz Armstrong'  (re-evaluated)</span></code></pre>
+
+<h3>Effect</h3>
+<p>Runs immediately on creation, then re-runs when any dependency changes. Returns an optional cleanup function.</p>
+
+<pre><code><span class="kw">import</span> { signal, effect } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> status = signal(<span class="str">'STANDBY'</span>)
+
+effect(() =&gt; {
+  console.log(<span class="str">'Status is now:'</span>, status())
+  <span class="kw">return</span> () =&gt; console.log(<span class="str">'cleanup'</span>)  <span class="com">// optional teardown</span>
+})</code></pre>
+
+<h3>Batch</h3>
+<p>Defer effect execution until all mutations are complete. Multiple signal updates coalesce into one re-render.</p>
+
+<pre><code><span class="kw">import</span> { signal, batch } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> x = signal(<span class="num">1</span>), y = signal(<span class="num">2</span>)
+
+batch(() =&gt; {
+  x.set(<span class="num">10</span>)
+  y.set(<span class="num">20</span>)
+  <span class="com">// effects fire once, after this block</span>
+})</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     DIRECTIVES
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="directives">Directives</h2>
+<p>Plain HTML attributes — no special syntax, no magic prefixes. A directive value is a dot-separated path into your scope.</p>
+
+<h3><code>text="path"</code></h3>
+<p>Sets <code>textContent</code>. Safe — no HTML injection.</p>
+<pre><code>&lt;span <span class="attr">text</span>="<span class="val">user.name</span>"&gt;&lt;/span&gt;
+&lt;p    <span class="attr">text</span>="<span class="val">summary</span>"&gt;&lt;/p&gt;</code></pre>
+
+<h3><code>html="path"</code></h3>
+<p>Sets <code>innerHTML</code>. Use for trusted rich content.</p>
+<pre><code>&lt;div <span class="attr">html</span>="<span class="val">article.body</span>"&gt;&lt;/div&gt;</code></pre>
+
+<h3><code>show="path"</code></h3>
+<p>Toggles the <code>hidden</code> attribute. On <code>&lt;dialog&gt;</code> elements, calls <code>showModal()</code> / <code>close()</code> automatically.</p>
+<pre><code>&lt;div    <span class="attr">show</span>="<span class="val">isVisible</span>"&gt;Revealed when true&lt;/div&gt;
+&lt;dialog <span class="attr">show</span>="<span class="val">modalOpen</span>"&gt;A native modal&lt;/dialog&gt;</code></pre>
+
+<h3><code>cls="path"</code></h3>
+<p>String form replaces <code>className</code>. Object form toggles individual classes by truthy value.</p>
+<pre><code>&lt;div <span class="attr">cls</span>="<span class="val">statusClass</span>"&gt;&lt;/div&gt;
+
+<span class="com">// String form</span>
+<span class="kw">const</span> statusClass = computed(() =&gt; isActive() ? <span class="str">'active'</span> : <span class="str">'inactive'</span>)
+
+<span class="com">// Object form — toggles individual classes</span>
+<span class="kw">const</span> statusClass = computed(() =&gt; ({
+  active:   isActive(),
+  disabled: isDisabled(),
+  loading:  isFetching(),
+}))</code></pre>
+
+<h3><code>attr="name:path; name2:path2"</code></h3>
+<p>Sets arbitrary element attributes. Removes the attribute when the value is <code>false</code> or <code>null</code>.</p>
+<pre><code>&lt;button <span class="attr">attr</span>="<span class="val">aria-label:label; disabled:isDisabled; data-id:item.id</span>"&gt;
+  Click me
+&lt;/button&gt;</code></pre>
+
+<h3><code>model="path"</code></h3>
+<p>Two-way binding for form elements. The path must resolve to a <strong>signal</strong> — model writes back to it on change.</p>
+<pre><code>&lt;input              <span class="attr">model</span>="<span class="val">query</span>"&gt;
+&lt;input type="checkbox" <span class="attr">model</span>="<span class="val">isChecked</span>"&gt;
+&lt;select             <span class="attr">model</span>="<span class="val">selectedOption</span>"&gt;&lt;/select&gt;
+&lt;textarea           <span class="attr">model</span>="<span class="val">notes</span>"&gt;&lt;/textarea&gt;</code></pre>
+
+<div class="demo-container">
+  <div class="demo-label">Live Telemetry — model binding</div>
+  <div class="demo">
+    <div id="model-demo" style="display:flex; flex-direction:column; gap:12px;">
+      <input placeholder="Type a mission name..." style="max-width:400px;">
+      <p style="color:var(--green); font-size:13px;">
+        You typed: "<span text="query" style="color:var(--amber)"></span>"
+        <span style="color:var(--text-dim)"> — length: </span>
+        <span text="length" style="color:var(--amber)"></span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const { bind, signal, computed } = await import(window.__RDBL__)
+const query  = signal('')
+const length = computed(() => query().length)
+const root   = document.querySelector('#model-demo')
+root.querySelector('input').setAttribute('model', 'query')
+bind(root, { query, length })
+</script>
+
+<h3><code>each="path" key="idPath"</code></h3>
+<p>Keyed list rendering. Requires a <code>&lt;template&gt;</code> child with the item markup. Efficiently diffs and reorders DOM nodes using the <code>key</code>.</p>
+<p>Inside list items, the scope includes all item properties, plus <code>$item</code> (the full item object) and <code>$index</code> (zero-based position).</p>
+<pre><code>&lt;ul <span class="attr">each</span>="<span class="val">todos</span>" <span class="attr">key</span>="<span class="val">id</span>"&gt;
+  &lt;template&gt;
+    &lt;li&gt;
+      &lt;input type="checkbox" <span class="attr">model</span>="<span class="val">done</span>"&gt;
+      &lt;span <span class="attr">text</span>="<span class="val">text</span>"&gt;&lt;/span&gt;
+      &lt;button <span class="attr">onclick</span>="<span class="val">remove</span>"&gt;✗&lt;/button&gt;
+    &lt;/li&gt;
+  &lt;/template&gt;
+&lt;/ul&gt;</code></pre>
+
+<h3><code>on&lt;event&gt;="path"</code></h3>
+<p>Event binding. The path resolves to a function in your scope. The handler receives <code>(event, element, context)</code>. Return <code>false</code> to call both <code>preventDefault()</code> and <code>stopPropagation()</code>.</p>
+<pre><code>&lt;button <span class="attr">onclick</span>="<span class="val">handleClick</span>"&gt;Launch&lt;/button&gt;
+&lt;form   <span class="attr">onsubmit</span>="<span class="val">handleSubmit</span>"&gt;&lt;/form&gt;
+&lt;input  <span class="attr">oninput</span>="<span class="val">liveSearch</span>"&gt;
+
+<span class="kw">const</span> state = {
+  handleClick(event, el, ctx) {
+    <span class="com">// event  → the DOM event</span>
+    <span class="com">// el     → the element</span>
+    <span class="com">// ctx    → Context.read(el)</span>
+  },
+  handleSubmit(event) {
+    <span class="kw">return false</span>  <span class="com">// preventDefault + stopPropagation</span>
+  }
+}</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     BIND
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="bind">bind()</h2>
+<pre><code><span class="kw">const</span> app = bind(rootElement, scope, options)</code></pre>
+
+<p>Walks the DOM from <code>rootElement</code>, wiring up all directive attributes it finds to the given scope. Returns an app instance.</p>
+
+<h3>Options</h3>
+<table>
+  <thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>dev</code></td><td><code>true</code></td><td>Log warnings for missing paths, bad values, missing keys</td></tr>
+    <tr><td><code>autoBind</code></td><td><code>false</code></td><td>Use MutationObserver to auto-bind dynamically added DOM</td></tr>
+    <tr><td><code>ignoreSelector</code></td><td><code>[data-no-bind]</code></td><td>CSS selector to opt subtrees out of binding</td></tr>
+  </tbody>
+</table>
+
+<h3><code>app.bindSubtree(element, scope)</code></h3>
+<p>Bind a sub-element with its own scope. The sub-scope falls back to the parent scope for unresolved paths.</p>
+<pre><code><span class="kw">const</span> app = bind(root, parentScope)
+app.bindSubtree(cardElement, cardScope)</code></pre>
+
+<h3><code>app.dispose()</code></h3>
+<p>Tear down all effects and event listeners created by this binding. Essential for cleanup when removing DOM.</p>
+<pre><code>app.dispose()</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     getItemContext
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="getitemcontext">getItemContext()</h2>
+<p>Inside <code>each</code> list event handlers, use this to access the item data for the row that was interacted with. Walk up any depth — rdbl attaches context to the nearest list item ancestor.</p>
+
+<pre><code><span class="kw">import</span> { signal, getItemContext } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> todos = signal([{ id: <span class="num">1</span>, text: <span class="str">'Launch rocket'</span>, done: <span class="kw">false</span> }])
+
+<span class="kw">const</span> state = {
+  todos,
+  toggleTodo(event, el) {
+    <span class="kw">const</span> { item, index } = getItemContext(el)
+    todos.set(
+      todos().map(t =&gt; t.id === item.id ? { ...t, done: !t.done } : t)
+    )
+  }
+}</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     createScope
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="createscope">createScope()</h2>
+<p>Create a child scope that falls back to a parent for unresolved properties. Useful for composing nested views.</p>
+
+<pre><code><span class="kw">import</span> { createScope } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> child = createScope(parentScope, {
+  localTitle: signal(<span class="str">'Local Override'</span>),
+  <span class="com">// everything else falls through to parentScope</span>
+})
+
+bind(element, child)</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     CONTEXT
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="context">Context</h2>
+<p>DOM-scoped context — looked up by walking the element tree. Avoids prop drilling for shared services like routers, loggers, or stores.</p>
+
+<pre><code><span class="kw">import</span> { Context } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="com">// Provide at any ancestor element</span>
+Context.provide(document.querySelector(<span class="str">'#app'</span>), {
+  router: { go: path =&gt; history.pushState({}, <span class="str">''</span>, path) },
+  log:    console.log,
+})
+
+<span class="com">// Read from any descendant (walks up to find nearest provider)</span>
+<span class="kw">const</span> ctx = Context.read(someChildElement)
+
+<span class="com">// Available as 3rd argument in all event handlers</span>
+<span class="kw">function</span> handleNav(event, el, ctx) {
+  ctx.router.go(<span class="str">'/dashboard'</span>)
+}</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     ISLANDS
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="islands">Islands</h2>
+<p>
+  Islands are independently bound components. Each element with an <code>[island]</code> attribute is its own binding root —
+  rdbl stops traversal at nested island boundaries so parent and child islands never interfere.
+</p>
+<p>The <code>island</code> attribute value is a module path. The module's default export is a factory function.</p>
+
+<h4>Island module</h4>
+<pre><code><span class="com">// /components/SyncStatus.js</span>
+<span class="kw">import</span> { computed, Context } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">export default function</span> syncStatus(root, window) {
+  <span class="kw">const</span> { pageState } = Context.read(document.body)
+
+  <span class="kw">return</span> {
+    statusText:    computed(() =&gt; pageState.connected() ? <span class="str">'Synced'</span> : <span class="str">'Connecting...'</span>),
+    indicatorCls:  computed(() =&gt; pageState.connected() ? <span class="str">'dot synced'</span> : <span class="str">'dot pending'</span>),
+  }
+}</code></pre>
+
+<h4>Island HTML</h4>
+<pre><code>&lt;section <span class="attr">island</span>="<span class="val">/components/SyncStatus.js</span>"&gt;
+  &lt;span <span class="attr">cls</span>="<span class="val">indicatorCls</span>"&gt;&lt;/span&gt;
+  &lt;span <span class="attr">text</span>="<span class="val">statusText</span>"&gt;&lt;/span&gt;
+&lt;/section&gt;</code></pre>
+
+<h4>init() — binding all islands at startup</h4>
+<pre><code><span class="kw">import</span> { bind, Context } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">async function</span> init(window) {
+  <span class="kw">const</span> roots = [...document.querySelectorAll(<span class="str">'[island]'</span>)]
+  <span class="kw">const</span> instances = {}
+  <span class="kw">let</span> i = <span class="num">0</span>
+
+  <span class="kw">for await</span> (<span class="kw">const</span> root <span class="kw">of</span> roots) {
+    <span class="kw">const</span> key = root.getAttribute(<span class="str">'island'</span>)
+    <span class="kw">try</span> {
+      <span class="kw">const</span> scopeFactory = (<span class="kw">await import</span>(key)).default
+      <span class="kw">const</span> scope        = scopeFactory(root, window)
+      instances[<span class="str">`<span class="kw">${key}</span>:<span class="kw">${i++}</span>`</span>] = bind(root, scope, { dev: <span class="kw">true</span> })
+    } <span class="kw">catch</span> (err) {
+      console.error(<span class="str">`Failed to load island "<span class="kw">${key}</span>":`</span>, err)
+    }
+  }
+  <span class="kw">return</span> instances
+}
+
+Context.provide(document.body, { pageState })
+<span class="kw">const</span> app = <span class="kw">await</span> init(window)</code></pre>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SSR HYDRATION
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="ssr">Server-Side Rendered Data</h2>
+<p>
+  rdbl works naturally with server-rendered HTML. The key rule: <strong>initialize your signals with server data before calling <code>bind()</code></strong>.
+  On first run, effects write the same values the server already rendered — the DOM doesn't flicker.
+</p>
+
+<h3>Embedded JSON in a script tag</h3>
+<pre><code><span class="com">&lt;!-- Server renders this --&gt;</span>
+&lt;script type="application/json" id="page-data"&gt;
+  { "user": { "name": "Joey", "plan": "pro" }, "posts": [] }
+&lt;/script&gt;
+
+&lt;div id="app" island="/components/Dashboard.js"&gt;
+  &lt;h1 <span class="attr">text</span>="<span class="val">greeting</span>"&gt;&lt;/h1&gt;
+&lt;/div&gt;</code></pre>
+<pre><code><span class="com">// /components/Dashboard.js</span>
+<span class="kw">import</span> { signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">export default function</span> dashboard(root, window) {
+  <span class="kw">const</span> raw      = JSON.parse(document.getElementById(<span class="str">'page-data'</span>).textContent)
+  <span class="kw">const</span> user     = signal(raw.user)
+  <span class="kw">const</span> greeting = computed(() =&gt; <span class="str">`Hello, <span class="kw">${</span>user().name<span class="kw">}</span>`</span>)
+  <span class="kw">return</span> { user, greeting }
+}</code></pre>
+
+<h3>Data attributes on the island root</h3>
+<pre><code>&lt;section <span class="attr">island</span>="<span class="val">/components/UserBadge.js</span>"
+         data-name="Joey"
+         data-plan="pro"&gt;
+  &lt;span <span class="attr">text</span>="<span class="val">name</span>"&gt;&lt;/span&gt;
+  &lt;span <span class="attr">cls</span>="<span class="val">badgeCls</span>" <span class="attr">text</span>="<span class="val">plan</span>"&gt;&lt;/span&gt;
+&lt;/section&gt;</code></pre>
+<pre><code><span class="kw">import</span> { signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">export default function</span> userBadge(root, window) {
+  <span class="kw">const</span> name     = signal(root.dataset.name)
+  <span class="kw">const</span> plan     = signal(root.dataset.plan)
+  <span class="kw">const</span> badgeCls = computed(() =&gt; <span class="str">`badge badge-<span class="kw">${</span>plan()<span class="kw">}</span>`</span>)
+  <span class="kw">return</span> { name, plan, badgeCls }
+}</code></pre>
+
+<h3>Hydrating from localStorage</h3>
+<pre><code><span class="kw">const</span> theme = signal(<span class="str">'light'</span>)
+<span class="kw">const</span> tasks = signal([])
+
+<span class="com">// Hydrate before bind()</span>
+<span class="kw">const</span> stored = localStorage.getItem(<span class="str">'app-state'</span>)
+<span class="kw">if</span> (stored) {
+  <span class="kw">const</span> snap = JSON.parse(stored)
+  theme.set(snap.theme ?? <span class="str">'light'</span>)
+  tasks.set(snap.tasks ?? [])
+}
+
+<span class="com">// Persist on every change</span>
+effect(() =&gt; {
+  localStorage.setItem(<span class="str">'app-state'</span>, JSON.stringify({
+    theme: theme(),
+    tasks: tasks(),
+  }))
+})
+
+bind(document.querySelector(<span class="str">'#app'</span>), { theme, tasks })</code></pre>
+
+<div class="callout green">
+  <strong>The pattern</strong>
+  In all three cases: signals are the source of truth, the server (or storage) provides initial values, and <code>bind()</code> wires the already-correct state to the DOM.
+</div>

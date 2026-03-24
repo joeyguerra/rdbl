@@ -1,0 +1,356 @@
+<!-- title: Mission Control -->
+<!-- nav: home -->
+<!-- desc: Signals-based reactivity wired directly to plain HTML. No build step. No virtual DOM. No template expressions. Just readable markup and a single file. -->
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+     ══════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <p class="hero-eyebrow">Flight Mission 1.0 — Cleared for Launch</p>
+  <h1>rdbl</h1>
+  <p class="hero-tagline">
+    Signals. Plain HTML. No build step.<br>
+    Reactive DOM binding the way it should be.
+  </p>
+  <p class="hero-desc">
+    Most reactive libraries ask you to learn a new template language or move your logic
+    into your markup. rdbl goes the other way: your HTML stays plain and readable,
+    your JS stays in JS. Wire them together with attributes, not incantations.
+  </p>
+
+  <div class="hero-actions">
+    <a href="guide.html" class="btn btn-primary">Launch Flight Manual ▶</a>
+    <a href="examples/todo.html" class="btn">View Simulations</a>
+  </div>
+
+  <div class="install-box">
+    <span class="install-prompt">$</span>
+    <span class="install-cmd">npm install rdbl</span>
+  </div>
+
+  <div class="hero-stats">
+    <div>
+      <span class="hero-stat-value">~4KB</span>
+      gzipped
+    </div>
+    <div>
+      <span class="hero-stat-value">0</span>
+      dependencies
+    </div>
+    <div>
+      <span class="hero-stat-value">1</span>
+      file
+    </div>
+    <div>
+      <span class="hero-stat-value">0</span>
+      build steps
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     LIVE DEMO — Counter
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="demo">Live Telemetry</h2>
+<p>This demo is running rdbl right now. Three signals, one computed, two handlers, eight HTML attributes.</p>
+
+<div class="demo-container">
+  <div class="demo-label">Live Telemetry</div>
+  <div class="demo">
+    <div id="hero-demo">
+      <div class="counter-display">
+        <div class="counter-value" text="count">0</div>
+        <div class="counter-label">Mission Count</div>
+        <div class="counter-readouts">
+          <div>
+            <div class="readout-label">Double</div>
+            <div class="readout-value" text="double">0</div>
+          </div>
+          <div>
+            <div class="readout-label">Status</div>
+            <div class="readout-value" text="status" cls="statusCls">STANDBY</div>
+          </div>
+          <div>
+            <div class="readout-label">Parity</div>
+            <div class="readout-value" text="parity">EVEN</div>
+          </div>
+        </div>
+        <div class="counter-controls">
+          <button onclick="decrement">−</button>
+          <button onclick="reset" class="ghost">RST</button>
+          <button onclick="increment">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-group">
+  <div class="tab-bar">
+    <button class="tab-btn">HTML</button>
+    <button class="tab-btn">JavaScript</button>
+  </div>
+  <div class="tab-pane">
+<div class="code-file">index.html</div>
+<pre><code>&lt;div id="hero-demo"&gt;
+  &lt;div class="counter-value" <span class="attr">text</span>="<span class="val">count</span>"&gt;&lt;/div&gt;
+  &lt;div class="readout-value" <span class="attr">text</span>="<span class="val">double</span>"&gt;&lt;/div&gt;
+  &lt;div class="readout-value" <span class="attr">text</span>="<span class="val">status</span>" <span class="attr">cls</span>="<span class="val">statusCls</span>"&gt;&lt;/div&gt;
+  &lt;div class="readout-value" <span class="attr">text</span>="<span class="val">parity</span>"&gt;&lt;/div&gt;
+  &lt;button <span class="attr">onclick</span>="<span class="val">decrement</span>"&gt;−&lt;/button&gt;
+  &lt;button <span class="attr">onclick</span>="<span class="val">reset</span>"&gt;RST&lt;/button&gt;
+  &lt;button <span class="attr">onclick</span>="<span class="val">increment</span>"&gt;+&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+  <div class="tab-pane">
+<div class="code-file">app.js</div>
+<pre><code><span class="kw">import</span> { bind, signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> count    = signal(<span class="num">0</span>)
+<span class="kw">const</span> double   = computed(() =&gt; count() * <span class="num">2</span>)
+<span class="kw">const</span> status   = computed(() =&gt; count() &gt; <span class="num">0</span> ? <span class="str">'NOMINAL'</span> : count() &lt; <span class="num">0</span> ? <span class="str">'ABORT'</span> : <span class="str">'STANDBY'</span>)
+<span class="kw">const</span> statusCls = computed(() =&gt; count() &gt; <span class="num">0</span> ? <span class="str">'green'</span> : count() &lt; <span class="num">0</span> ? <span class="str">'red'</span> : <span class="str">'amber'</span>)
+<span class="kw">const</span> parity   = computed(() =&gt; count() % <span class="num">2</span> === <span class="num">0</span> ? <span class="str">'EVEN'</span> : <span class="str">'ODD'</span>)
+
+bind(document.querySelector(<span class="str">'#hero-demo'</span>), {
+  count, double, status, statusCls, parity,
+  increment: () =&gt; count.set(count() + <span class="num">1</span>),
+  decrement: () =&gt; count.set(count() - <span class="num">1</span>),
+  reset:     () =&gt; count.set(<span class="num">0</span>),
+})</code></pre>
+  </div>
+</div>
+
+<script type="module">
+const { bind, signal, computed } = await import(window.__RDBL__)
+
+const count     = signal(0)
+const double    = computed(() => count() * 2)
+const status    = computed(() => count() > 0 ? 'NOMINAL' : count() < 0 ? 'ABORT' : 'STANDBY')
+const statusCls = computed(() => count() > 0 ? 'green readout-value' : count() < 0 ? 'red readout-value' : 'amber readout-value')
+const parity    = computed(() => count() % 2 === 0 ? 'EVEN' : 'ODD')
+
+bind(document.querySelector('#hero-demo'), {
+  count, double, status, statusCls, parity,
+  increment: () => count.set(count() + 1),
+  decrement: () => count.set(count() - 1),
+  reset:     () => count.set(0),
+})
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     HOW IT WORKS
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="how">How It Works</h2>
+<p>
+  Three ideas. That's it. Learn these and you know rdbl.
+</p>
+
+<div class="panel">
+  <div class="panel-title">Concept 01 — Signals are the state</div>
+  <p>A <strong>signal</strong> holds a reactive value. Read it by calling it. Write it with <code>.set()</code>. Everything downstream updates automatically.</p>
+<pre><code><span class="kw">const</span> name = signal(<span class="str">'Houston'</span>)
+name()          <span class="com">// → 'Houston'</span>
+name.set(<span class="str">'Apollo'</span>)
+name()          <span class="com">// → 'Apollo'</span></code></pre>
+</div>
+
+<div class="panel">
+  <div class="panel-title">Concept 02 — Computed derives state</div>
+  <p>A <strong>computed</strong> is lazy derived state. It re-evaluates only when its dependencies change. No watcher setup, no manual subscriptions.</p>
+<pre><code><span class="kw">const</span> greeting = computed(() =&gt; <span class="str">`Hello, <span class="kw">${</span>name()<span class="kw">}</span>`</span>)
+greeting()      <span class="com">// → 'Hello, Apollo'</span>
+
+name.set(<span class="str">'Discovery'</span>)
+greeting()      <span class="com">// → 'Hello, Discovery'</span></code></pre>
+</div>
+
+<div class="panel">
+  <div class="panel-title">Concept 03 — bind() wires state to HTML</div>
+  <p><strong>bind()</strong> reads plain HTML attributes and connects them to your state. No special syntax — just dot paths pointing into your scope.</p>
+<pre><code><span class="com">&lt;!-- HTML --&gt;</span>
+&lt;h1 <span class="attr">text</span>="<span class="val">greeting</span>"&gt;&lt;/h1&gt;
+&lt;input <span class="attr">model</span>="<span class="val">name</span>"&gt;
+
+<span class="com">// JS</span>
+bind(document.querySelector(<span class="str">'#app'</span>), { name, greeting })</code></pre>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     DIRECTIVES QUICK REFERENCE
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="directives">Directives at a Glance</h2>
+<p>Eight HTML attributes. That's the entire binding vocabulary.</p>
+
+<table class="directive-ref">
+  <thead>
+    <tr>
+      <th>Attribute</th>
+      <th>What it does</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>text="path"</code></td>
+      <td>Sets <code>textContent</code></td>
+      <td><code>&lt;span text="user.name"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>html="path"</code></td>
+      <td>Sets <code>innerHTML</code></td>
+      <td><code>&lt;div html="article.body"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>show="path"</code></td>
+      <td>Toggles visibility (hidden attr / dialog)</td>
+      <td><code>&lt;dialog show="isOpen"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>cls="path"</code></td>
+      <td>Sets className (string) or toggles (object)</td>
+      <td><code>&lt;div cls="statusClass"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>attr="n:path; n2:p2"</code></td>
+      <td>Sets arbitrary attributes</td>
+      <td><code>&lt;button attr="aria-label:label"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>model="path"</code></td>
+      <td>Two-way binding (input, select, checkbox…)</td>
+      <td><code>&lt;input model="query"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>each="path" key="id"</code></td>
+      <td>Keyed list rendering with <code>&lt;template&gt;</code></td>
+      <td><code>&lt;ul each="todos" key="id"&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>on&lt;event&gt;="path"</code></td>
+      <td>Event binding to handler function</td>
+      <td><code>&lt;button onclick="addTodo"&gt;</code></td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     DESIGN PRINCIPLES
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="principles">Design Principles</h2>
+
+<div class="principles">
+  <div class="principle">
+    <span class="principle-num">01</span>
+    <span class="principle-title">HTML is structure</span>
+    <span class="principle-desc">Directives describe <em>what</em> to bind, not how. No logic in markup.</span>
+  </div>
+  <div class="principle">
+    <span class="principle-num">02</span>
+    <span class="principle-title">No expressions in markup</span>
+    <span class="principle-desc">Paths only. <code>text="user.name"</code>, never <code>{{ user.name }}</code>. Logic lives in JS.</span>
+  </div>
+  <div class="principle">
+    <span class="principle-num">03</span>
+    <span class="principle-title">Signals are the model</span>
+    <span class="principle-desc">One reactive primitive. No magic objects, no proxy traps, no surprises.</span>
+  </div>
+  <div class="principle">
+    <span class="principle-num">04</span>
+    <span class="principle-title">DOM-first</span>
+    <span class="principle-desc">No virtual DOM. Direct updates batched via microtask. Fast and predictable.</span>
+  </div>
+  <div class="principle">
+    <span class="principle-num">05</span>
+    <span class="principle-title">Single file</span>
+    <span class="principle-desc">Copy it, own it. No build pipeline, no peer dependencies, no lock-in.</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     FULL EXAMPLE
+     ══════════════════════════════════════════════════════════ -->
+<h2 id="example">Full Example</h2>
+<p>The complete todo app from the README — signal, computed, event handlers, list rendering, and two-way input binding. All of rdbl in ~30 lines.</p>
+
+<div class="tab-group">
+  <div class="tab-bar">
+    <button class="tab-btn">HTML</button>
+    <button class="tab-btn">JavaScript</button>
+  </div>
+  <div class="tab-pane">
+<pre><code>&lt;div id="app"&gt;
+  &lt;h1 <span class="attr">text</span>="<span class="val">title</span>"&gt;&lt;/h1&gt;
+  &lt;input <span class="attr">model</span>="<span class="val">newTodo</span>" placeholder="Add a task..."&gt;
+  &lt;button <span class="attr">onclick</span>="<span class="val">addTodo</span>"&gt;Add&lt;/button&gt;
+
+  &lt;ul <span class="attr">each</span>="<span class="val">todos</span>" <span class="attr">key</span>="<span class="val">id</span>"&gt;
+    &lt;template&gt;
+      &lt;li&gt;
+        &lt;input type="checkbox" <span class="attr">model</span>="<span class="val">done</span>"&gt;
+        &lt;span <span class="attr">text</span>="<span class="val">text</span>" <span class="attr">cls</span>="<span class="val">itemCls</span>"&gt;&lt;/span&gt;
+        &lt;button <span class="attr">onclick</span>="<span class="val">remove</span>"&gt;✗&lt;/button&gt;
+      &lt;/li&gt;
+    &lt;/template&gt;
+  &lt;/ul&gt;
+
+  &lt;p <span class="attr">text</span>="<span class="val">summary</span>"&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+  <div class="tab-pane">
+<pre><code><span class="kw">import</span> { bind, signal, computed, getItemContext } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="kw">const</span> todos   = signal([
+  { id: <span class="num">1</span>, text: <span class="str">'Read the docs'</span>,   done: <span class="kw">false</span>, itemCls: <span class="str">''</span> },
+  { id: <span class="num">2</span>, text: <span class="str">'Build something'</span>, done: <span class="kw">false</span>, itemCls: <span class="str">''</span> },
+])
+<span class="kw">const</span> newTodo = signal(<span class="str">''</span>)
+
+<span class="kw">const</span> state = {
+  title: <span class="str">'My Todos'</span>,
+  todos,
+  newTodo,
+  summary: computed(() =&gt; {
+    <span class="kw">const</span> all  = todos()
+    <span class="kw">const</span> done = all.filter(t =&gt; t.done).length
+    <span class="kw">return</span> <span class="str">`<span class="kw">${done}</span> of <span class="kw">${all.length}</span> done`</span>
+  }),
+
+  addTodo() {
+    <span class="kw">const</span> text = newTodo().trim()
+    <span class="kw">if</span> (!text) <span class="kw">return</span>
+    todos.set([...todos(), { id: Date.now(), text, done: <span class="kw">false</span>, itemCls: <span class="str">''</span> }])
+    newTodo.set(<span class="str">''</span>)
+  },
+
+  remove(event, el) {
+    <span class="kw">const</span> { item } = getItemContext(el)
+    todos.set(todos().filter(t =&gt; t.id !== item.id))
+  }
+}
+
+bind(document.querySelector(<span class="str">'#app'</span>), state)</code></pre>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+     ══════════════════════════════════════════════════════════ -->
+<div class="panel" style="margin-top:48px; text-align:center; padding:40px;">
+  <div class="panel-title" style="text-align:center; border:none;">Ready to go?</div>
+  <p style="margin-bottom:24px; color:var(--text);">
+    The Flight Manual has every directive, API, and pattern with live demos.<br>
+    The Simulations show complete working apps.
+  </p>
+  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+    <a href="guide.html" class="btn btn-primary">Read the Flight Manual</a>
+    <a href="examples/todo.html" class="btn">Launch Simulations</a>
+  </div>
+</div>

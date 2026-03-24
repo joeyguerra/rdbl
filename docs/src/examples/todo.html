@@ -1,0 +1,369 @@
+<!-- title: Todo Mission — Simulations -->
+<!-- nav: todo -->
+<!-- desc: A full todo app with Yesterday/Today view — showing signal, computed, each, model, getItemContext, and localStorage persistence. -->
+
+<div class="page-intro">
+  <h1>Simulation 02<br><span style="font-size:16px; letter-spacing:3px;">Todo Mission</span></h1>
+  <p>
+    A full todo app with a Yesterday/Today view. Demonstrates <code>each</code>, <code>model</code>,
+    <code>getItemContext</code>, <code>computed</code> filtering, and <code>effect</code>-based
+    localStorage persistence — all without a build step.
+  </p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     LIVE DEMO
+     ══════════════════════════════════════════════════════════ -->
+<div class="demo-container">
+  <div class="demo-label">Live Telemetry</div>
+  <div class="demo">
+    <div id="todo-app">
+      <div class="app-header">
+        <span>Mission Log</span>
+        <span text="summary" style="font-size:10px; color:var(--text-dim);"></span>
+      </div>
+
+      <!-- View tabs -->
+      <div class="todo-tabs">
+        <button cls="todayTabCls" onclick="showToday">
+          Today <span class="badge" text="activeCount"></span>
+        </button>
+        <button cls="yesterdayTabCls" onclick="showYesterday">
+          Yesterday <span class="badge" text="completedCount"></span>
+        </button>
+      </div>
+
+      <!-- Add new (only in today view) -->
+      <div class="todo-input-row" show="isToday">
+        <input model="newTodo" placeholder="MISSION OBJECTIVE...">
+        <button onclick="addTodo">LAUNCH ▶</button>
+      </div>
+
+      <!-- List -->
+      <ul class="todo-list" each="visibleTodos" key="id">
+        <template>
+          <li class="todo-item">
+            <span class="todo-text" text="text" cls="textCls"></span>
+            <div class="todo-actions">
+              <button onclick="toggleTodo" text="actionLabel"></button>
+              <button onclick="removeTodo" class="danger">ABORT</button>
+            </div>
+          </li>
+        </template>
+      </ul>
+
+      <!-- Empty state -->
+      <div show="isEmpty">
+        <div class="todo-empty" id="empty-msg">— No objectives logged —</div>
+      </div>
+
+      <p class="todo-summary" text="summary"></p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const { bind, signal, computed, effect, getItemContext } = await import(window.__RDBL__)
+
+// ── Helpers ─────────────────────────────────────────────────
+function makeTodo(text, done = false) {
+  return {
+    id:          Date.now() + Math.random(),
+    text,
+    done,
+    textCls:     done ? 'todo-text done' : 'todo-text',
+    actionLabel: done ? 'RESTORE' : 'COMPLETE',
+  }
+}
+
+// ── State ────────────────────────────────────────────────────
+const stored = JSON.parse(localStorage.getItem('rdbl-todos') || 'null')
+
+const todos = signal(stored ?? [
+  makeTodo('Review mission parameters'),
+  makeTodo('Check telemetry systems'),
+  makeTodo('Brief the crew'),
+  makeTodo('Configure launch sequence', true),
+  makeTodo('Preflight checklist', true),
+])
+
+const view    = signal('today')
+const newTodo = signal('')
+
+// ── Computed ─────────────────────────────────────────────────
+const activeTodos    = computed(() => todos().filter(t => !t.done))
+const completedTodos = computed(() => todos().filter(t =>  t.done))
+const visibleTodos   = computed(() => view() === 'today' ? activeTodos() : completedTodos())
+const activeCount    = computed(() => activeTodos().length)
+const completedCount = computed(() => completedTodos().length)
+const isEmpty        = computed(() => visibleTodos().length === 0)
+
+const isToday        = computed(() => view() === 'today')
+const todayTabCls    = computed(() => view() === 'today'     ? 'todo-tab tab-active' : 'todo-tab')
+const yesterdayTabCls= computed(() => view() === 'yesterday' ? 'todo-tab tab-active' : 'todo-tab')
+
+const summary = computed(() => {
+  const done  = completedTodos().length
+  const total = todos().length
+  if (total === 0) return 'No missions logged'
+  return `${done} of ${total} missions complete`
+})
+
+// ── Persistence ───────────────────────────────────────────────
+effect(() => {
+  localStorage.setItem('rdbl-todos', JSON.stringify(todos()))
+})
+
+// ── Handlers ─────────────────────────────────────────────────
+function addTodo() {
+  const text = newTodo().trim()
+  if (!text) return
+  todos.set([...todos(), makeTodo(text)])
+  newTodo.set('')
+}
+
+function toggleTodo(event, el) {
+  const { item } = getItemContext(el)
+  todos.set(todos().map(t =>
+    t.id !== item.id ? t : {
+      ...t,
+      done:        !t.done,
+      textCls:     !t.done ? 'todo-text done' : 'todo-text',
+      actionLabel: !t.done ? 'RESTORE' : 'COMPLETE',
+    }
+  ))
+}
+
+function removeTodo(event, el) {
+  const { item } = getItemContext(el)
+  todos.set(todos().filter(t => t.id !== item.id))
+}
+
+// ── Bind ─────────────────────────────────────────────────────
+bind(document.querySelector('#todo-app'), {
+  todos, newTodo, visibleTodos,
+  activeCount, completedCount,
+  isEmpty, isToday,
+  todayTabCls, yesterdayTabCls,
+  summary,
+  addTodo,
+  toggleTodo,
+  removeTodo,
+  showToday:     () => view.set('today'),
+  showYesterday: () => view.set('yesterday'),
+})
+
+// Submit on Enter
+document.querySelector('#todo-app input[model]')
+  ?.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo() })
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     SOURCE CODE
+     ══════════════════════════════════════════════════════════ -->
+<h2>Source Code</h2>
+
+<div class="tab-group">
+  <div class="tab-bar">
+    <button class="tab-btn">HTML</button>
+    <button class="tab-btn">JavaScript</button>
+    <button class="tab-btn">State Shape</button>
+  </div>
+
+  <div class="tab-pane">
+<div class="code-file">todo.html</div>
+<pre><code>&lt;div id="todo-app"&gt;
+
+  &lt;!-- View selector --&gt;
+  &lt;button <span class="attr">cls</span>="<span class="val">todayTabCls</span>"     <span class="attr">onclick</span>="<span class="val">showToday</span>"&gt;
+    Today &lt;span <span class="attr">text</span>="<span class="val">activeCount</span>"&gt;&lt;/span&gt;
+  &lt;/button&gt;
+  &lt;button <span class="attr">cls</span>="<span class="val">yesterdayTabCls</span>" <span class="attr">onclick</span>="<span class="val">showYesterday</span>"&gt;
+    Yesterday &lt;span <span class="attr">text</span>="<span class="val">completedCount</span>"&gt;&lt;/span&gt;
+  &lt;/button&gt;
+
+  &lt;!-- Add form, hidden in yesterday view --&gt;
+  &lt;div <span class="attr">show</span>="<span class="val">isToday</span>"&gt;
+    &lt;input <span class="attr">model</span>="<span class="val">newTodo</span>" placeholder="Mission objective..."&gt;
+    &lt;button <span class="attr">onclick</span>="<span class="val">addTodo</span>"&gt;Launch&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Keyed list --&gt;
+  &lt;ul <span class="attr">each</span>="<span class="val">visibleTodos</span>" <span class="attr">key</span>="<span class="val">id</span>"&gt;
+    &lt;template&gt;
+      &lt;li&gt;
+        &lt;span <span class="attr">text</span>="<span class="val">text</span>" <span class="attr">cls</span>="<span class="val">textCls</span>"&gt;&lt;/span&gt;
+        &lt;button <span class="attr">onclick</span>="<span class="val">toggleTodo</span>" <span class="attr">text</span>="<span class="val">actionLabel</span>"&gt;&lt;/button&gt;
+        &lt;button <span class="attr">onclick</span>="<span class="val">removeTodo</span>"&gt;Abort&lt;/button&gt;
+      &lt;/li&gt;
+    &lt;/template&gt;
+  &lt;/ul&gt;
+
+  &lt;p <span class="attr">text</span>="<span class="val">summary</span>"&gt;&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <div class="tab-pane">
+<div class="code-file">todo.js</div>
+<pre><code><span class="kw">import</span> { bind, signal, computed, effect, getItemContext } <span class="kw">from</span> <span class="str">'rdbl'</span>
+
+<span class="com">// Item factory — bakes display properties into each item</span>
+<span class="kw">function</span> makeTodo(text, done = <span class="kw">false</span>) {
+  <span class="kw">return</span> {
+    id:          Date.now() + Math.random(),
+    text,
+    done,
+    textCls:     done ? <span class="str">'todo-text done'</span>  : <span class="str">'todo-text'</span>,
+    actionLabel: done ? <span class="str">'RESTORE'</span>         : <span class="str">'COMPLETE'</span>,
+  }
+}
+
+<span class="com">// ── Signals ──────────────────────────────────────────────────</span>
+<span class="kw">const</span> todos   = signal([makeTodo(<span class="str">'Review mission parameters'</span>)])
+<span class="kw">const</span> view    = signal(<span class="str">'today'</span>)   <span class="com">// 'today' | 'yesterday'</span>
+<span class="kw">const</span> newTodo = signal(<span class="str">''</span>)
+
+<span class="com">// ── Computed ─────────────────────────────────────────────────</span>
+<span class="kw">const</span> activeTodos    = computed(() =&gt; todos().filter(t =&gt; !t.done))
+<span class="kw">const</span> completedTodos = computed(() =&gt; todos().filter(t =&gt;  t.done))
+<span class="kw">const</span> visibleTodos   = computed(() =&gt;
+  view() === <span class="str">'today'</span> ? activeTodos() : completedTodos()
+)
+<span class="kw">const</span> summary = computed(() =&gt; {
+  <span class="kw">const</span> done  = completedTodos().length
+  <span class="kw">const</span> total = todos().length
+  <span class="kw">return</span> <span class="str">`<span class="kw">${done}</span> of <span class="kw">${total}</span> missions complete`</span>
+})
+<span class="kw">const</span> isToday         = computed(() =&gt; view() === <span class="str">'today'</span>)
+<span class="kw">const</span> todayTabCls     = computed(() =&gt; view() === <span class="str">'today'</span>     ? <span class="str">'tab tab-active'</span> : <span class="str">'tab'</span>)
+<span class="kw">const</span> yesterdayTabCls = computed(() =&gt; view() === <span class="str">'yesterday'</span> ? <span class="str">'tab tab-active'</span> : <span class="str">'tab'</span>)
+
+<span class="com">// ── Effect: persist on every change ──────────────────────────</span>
+effect(() =&gt; {
+  localStorage.setItem(<span class="str">'todos'</span>, JSON.stringify(todos()))
+})
+
+<span class="com">// ── Handlers ─────────────────────────────────────────────────</span>
+<span class="kw">function</span> addTodo() {
+  <span class="kw">const</span> text = newTodo().trim()
+  <span class="kw">if</span> (!text) <span class="kw">return</span>
+  todos.set([...todos(), makeTodo(text)])
+  newTodo.set(<span class="str">''</span>)
+}
+
+<span class="kw">function</span> toggleTodo(event, el) {
+  <span class="kw">const</span> { item } = getItemContext(el)
+  todos.set(todos().map(t =&gt;
+    t.id !== item.id ? t : {
+      ...t,
+      done:        !t.done,
+      textCls:     !t.done ? <span class="str">'todo-text done'</span> : <span class="str">'todo-text'</span>,
+      actionLabel: !t.done ? <span class="str">'RESTORE'</span>        : <span class="str">'COMPLETE'</span>,
+    }
+  ))
+}
+
+<span class="kw">function</span> removeTodo(event, el) {
+  <span class="kw">const</span> { item } = getItemContext(el)
+  todos.set(todos().filter(t =&gt; t.id !== item.id))
+}
+
+<span class="com">// ── Bind ─────────────────────────────────────────────────────</span>
+bind(document.querySelector(<span class="str">'#todo-app'</span>), {
+  todos, newTodo, visibleTodos,
+  activeCount: computed(() =&gt; activeTodos().length),
+  completedCount: computed(() =&gt; completedTodos().length),
+  isEmpty: computed(() =&gt; visibleTodos().length === <span class="num">0</span>),
+  isToday, todayTabCls, yesterdayTabCls, summary,
+  addTodo, toggleTodo, removeTodo,
+  showToday:     () =&gt; view.set(<span class="str">'today'</span>),
+  showYesterday: () =&gt; view.set(<span class="str">'yesterday'</span>),
+})</code></pre>
+  </div>
+
+  <div class="tab-pane">
+<div class="code-file">State shape</div>
+<pre><code><span class="com">// Signals (reactive sources)</span>
+todos    : Signal&lt;Todo[]&gt;   <span class="com">// array of all todos</span>
+view     : Signal&lt;string&gt;   <span class="com">// 'today' | 'yesterday'</span>
+newTodo  : Signal&lt;string&gt;   <span class="com">// input value</span>
+
+<span class="com">// Computeds (derived from signals)</span>
+activeTodos     <span class="com">// todos where done === false</span>
+completedTodos  <span class="com">// todos where done === true</span>
+visibleTodos    <span class="com">// whichever list is active</span>
+activeCount     <span class="com">// number</span>
+completedCount  <span class="com">// number</span>
+isEmpty         <span class="com">// boolean</span>
+isToday         <span class="com">// boolean — controls show= on add form</span>
+todayTabCls     <span class="com">// CSS class string for today tab</span>
+yesterdayTabCls <span class="com">// CSS class string for yesterday tab</span>
+summary         <span class="com">// "N of M missions complete"</span>
+
+<span class="com">// Per-item display properties (baked into the array items)</span>
+item.textCls     <span class="com">// 'todo-text' | 'todo-text done'</span>
+item.actionLabel <span class="com">// 'COMPLETE' | 'RESTORE'</span>
+
+<span class="com">// Handlers</span>
+addTodo, toggleTodo, removeTodo
+showToday, showYesterday</code></pre>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     WALKTHROUGH
+     ══════════════════════════════════════════════════════════ -->
+<h2>Key Patterns</h2>
+
+<h3>Yesterday/Today — filter with computed</h3>
+<p>
+  Two views, one array. <code>visibleTodos</code> is a computed that filters based on the <code>view</code> signal.
+  Switching tabs just calls <code>view.set('yesterday')</code> — the list re-renders automatically.
+</p>
+<pre><code><span class="kw">const</span> visibleTodos = computed(() =&gt;
+  view() === <span class="str">'today'</span> ? activeTodos() : completedTodos()
+)</code></pre>
+
+<h3>Per-item display properties</h3>
+<p>
+  Inside an <code>each</code> template, the scope is the item itself. For conditional styling, bake the derived
+  properties into the item when creating or updating it — instead of reaching back to the parent scope.
+</p>
+<pre><code><span class="com">// When toggling, update the display properties too</span>
+todos.set(todos().map(t =&gt;
+  t.id !== item.id ? t : {
+    ...t,
+    done:        !t.done,
+    textCls:     !t.done ? <span class="str">'done'</span> : <span class="str">''</span>,
+    actionLabel: !t.done ? <span class="str">'RESTORE'</span> : <span class="str">'COMPLETE'</span>,
+  }
+))</code></pre>
+
+<h3>getItemContext — which item was clicked?</h3>
+<p>
+  Inside a list event handler, <code>getItemContext(el)</code> walks up the DOM to find the bound item for
+  that row. Works regardless of how deeply nested the clicked element is.
+</p>
+<pre><code><span class="kw">function</span> removeTodo(event, el) {
+  <span class="kw">const</span> { item, index } = getItemContext(el)
+  todos.set(todos().filter(t =&gt; t.id !== item.id))
+}</code></pre>
+
+<h3>localStorage persistence with effect</h3>
+<p>One <code>effect</code> handles all persistence. It runs whenever <code>todos</code> changes — no need to call it manually.</p>
+<pre><code>effect(() =&gt; {
+  localStorage.setItem(<span class="str">'todos'</span>, JSON.stringify(todos()))
+})</code></pre>
+
+<div class="callout">
+  <strong>Try it</strong>
+  Add some tasks above, refresh the page — they persist. That's <code>effect</code> + <code>localStorage</code> in four lines.
+</div>
+
+<div style="display:flex; gap:16px; margin-top:40px; flex-wrap:wrap;">
+  <a href="search.html" class="btn btn-primary">Next: Search &amp; Filter ▶</a>
+  <a href="counter.html" class="btn">← Counter</a>
+</div>

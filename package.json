@@ -1,0 +1,15 @@
+{
+  "name": "@joeyguerra/rdbljs",
+  "module": "index.js",
+  "type": "module",
+  "scripts": {
+    "docs": "bun run bin/build.js",
+    "docs:serve": "bun run bin/build.js && bunx serve dist"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
