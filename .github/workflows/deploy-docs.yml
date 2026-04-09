@@ -31,7 +31,7 @@ jobs:
           bun-version: latest
 
       - name: Build docs
-        run: bun run docs:build
+        run: bun run docs:build:github
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
