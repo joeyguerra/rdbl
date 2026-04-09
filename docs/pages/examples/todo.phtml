@@ -1,9 +1,9 @@
-<!-- title: Todo Mission — Simulations -->
-<!-- nav: todo -->
-<!-- desc: A full todo app with Yesterday/Today view — showing signal, computed, each, model, getItemContext, and localStorage persistence. -->
+<template data-slot="navActive">todo</template>
+<template data-slot="title">Todo Mission — Simulations</template>
+<template data-slot="description">A full todo app with Yesterday/Today view — showing signal, computed, each, model, getItemContext, and localStorage persistence.</template>
 
 <div class="page-intro">
-  <h1>Simulation 02<br><span style="font-size:16px; letter-spacing:3px;">Todo Mission</span></h1>
+  <h1>Simulation 02<br><span class="sim-subtitle">Todo Mission</span></h1>
   <p>
     A full todo app with a Yesterday/Today view. Demonstrates <code>each</code>, <code>model</code>,
     <code>getItemContext</code>, <code>computed</code> filtering, and <code>effect</code>-based
@@ -21,7 +21,7 @@
     <div id="todo-app">
       <div class="app-header">
         <span>Mission Log</span>
-        <span text="summary" style="font-size:10px; color:var(--text-dim);"></span>
+        <span text="summary" class="todo-summary"></span>
       </div>
 
       <!-- View tabs -->
@@ -63,101 +63,7 @@
   </div>
 </div>
 
-<script type="module">
-const { bind, signal, computed, effect, getItemContext } = await import(window.__RDBL__)
-
-// ── Helpers ─────────────────────────────────────────────────
-function makeTodo(text, done = false) {
-  return {
-    id:          Date.now() + Math.random(),
-    text,
-    done,
-    textCls:     done ? 'todo-text done' : 'todo-text',
-    actionLabel: done ? 'RESTORE' : 'COMPLETE',
-  }
-}
-
-// ── State ────────────────────────────────────────────────────
-const stored = JSON.parse(localStorage.getItem('rdbl-todos') || 'null')
-
-const todos = signal(stored ?? [
-  makeTodo('Review mission parameters'),
-  makeTodo('Check telemetry systems'),
-  makeTodo('Brief the crew'),
-  makeTodo('Configure launch sequence', true),
-  makeTodo('Preflight checklist', true),
-])
-
-const view    = signal('today')
-const newTodo = signal('')
-
-// ── Computed ─────────────────────────────────────────────────
-const activeTodos    = computed(() => todos().filter(t => !t.done))
-const completedTodos = computed(() => todos().filter(t =>  t.done))
-const visibleTodos   = computed(() => view() === 'today' ? activeTodos() : completedTodos())
-const activeCount    = computed(() => activeTodos().length)
-const completedCount = computed(() => completedTodos().length)
-const isEmpty        = computed(() => visibleTodos().length === 0)
-
-const isToday        = computed(() => view() === 'today')
-const todayTabCls    = computed(() => view() === 'today'     ? 'todo-tab tab-active' : 'todo-tab')
-const yesterdayTabCls= computed(() => view() === 'yesterday' ? 'todo-tab tab-active' : 'todo-tab')
-
-const summary = computed(() => {
-  const done  = completedTodos().length
-  const total = todos().length
-  if (total === 0) return 'No missions logged'
-  return `${done} of ${total} missions complete`
-})
-
-// ── Persistence ───────────────────────────────────────────────
-effect(() => {
-  localStorage.setItem('rdbl-todos', JSON.stringify(todos()))
-})
-
-// ── Handlers ─────────────────────────────────────────────────
-function addTodo() {
-  const text = newTodo().trim()
-  if (!text) return
-  todos.set([...todos(), makeTodo(text)])
-  newTodo.set('')
-}
-
-function toggleTodo(event, el) {
-  const { item } = getItemContext(el)
-  todos.set(todos().map(t =>
-    t.id !== item.id ? t : {
-      ...t,
-      done:        !t.done,
-      textCls:     !t.done ? 'todo-text done' : 'todo-text',
-      actionLabel: !t.done ? 'RESTORE' : 'COMPLETE',
-    }
-  ))
-}
-
-function removeTodo(event, el) {
-  const { item } = getItemContext(el)
-  todos.set(todos().filter(t => t.id !== item.id))
-}
-
-// ── Bind ─────────────────────────────────────────────────────
-bind(document.querySelector('#todo-app'), {
-  todos, newTodo, visibleTodos,
-  activeCount, completedCount,
-  isEmpty, isToday,
-  todayTabCls, yesterdayTabCls,
-  summary,
-  addTodo,
-  toggleTodo,
-  removeTodo,
-  showToday:     () => view.set('today'),
-  showCompleted: () => view.set('completed'),
-})
-
-// Submit on Enter
-document.querySelector('#todo-app input[model]')
-  ?.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo() })
-</script>
+<script type="module" src="/assets/todo.js"></script>
 
 
 <!-- ══════════════════════════════════════════════════════════
@@ -363,7 +269,7 @@ todos.set(todos().map(t =&gt;
   Add some tasks above, refresh the page — they persist. That's <code>effect</code> + <code>localStorage</code> in four lines.
 </div>
 
-<div style="display:flex; gap:16px; margin-top:40px; flex-wrap:wrap;">
+<div class="page-nav-links">
   <a href="search.html" class="btn btn-primary">Next: Search &amp; Filter ▶</a>
   <a href="counter.html" class="btn">← Counter</a>
 </div>

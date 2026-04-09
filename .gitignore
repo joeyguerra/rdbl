@@ -73,3 +73,5 @@ _site
 bitcoin.db
 
 data
+dist
+docs/pages/public/assets/rdbl.js

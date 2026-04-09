@@ -1,6 +1,6 @@
-<!-- title: Mission Control -->
-<!-- nav: home -->
-<!-- desc: Signals-based reactivity wired directly to plain HTML. No build step. No virtual DOM. No template expressions. Just readable markup and a single file. -->
+<template data-slot="navActive">home</template>
+<template data-slot="title">Mission Control</template>
+<template data-slot="description">Signals-based reactivity wired directly to plain HTML. No build step. No virtual DOM. No template expressions. Just readable markup and a single file.</template>
 
 <!-- ══════════════════════════════════════════════════════════
      HERO
@@ -20,13 +20,13 @@
   </p>
 
   <div class="hero-actions">
-    <a href="guide.html" class="btn btn-primary">Launch Flight Manual ▶</a>
-    <a href="examples/todo.html" class="btn">View Simulations</a>
+    <a href="/guide/" class="btn btn-primary">Launch Flight Manual ▶</a>
+    <a href="/examples/todo/" class="btn">View Simulations</a>
   </div>
 
   <div class="install-box">
     <span class="install-prompt">$</span>
-    <span class="install-cmd">bun add @joeyguerra/rdbl</span>
+    <span class="install-cmd">bun add @devchitchat/rdbl</span>
   </div>
 
   <div class="hero-stats">
@@ -123,22 +123,7 @@ bind(document.querySelector(<span class="str">'#hero-demo'</span>), {
   </div>
 </div>
 
-<script type="module">
-const { bind, signal, computed } = await import(window.__RDBL__)
-
-const count     = signal(0)
-const double    = computed(() => count() * 2)
-const status    = computed(() => count() > 0 ? 'NOMINAL' : count() < 0 ? 'ABORT' : 'STANDBY')
-const statusCls = computed(() => count() > 0 ? 'green readout-value' : count() < 0 ? 'red readout-value' : 'amber readout-value')
-const parity    = computed(() => count() % 2 === 0 ? 'EVEN' : 'ODD')
-
-bind(document.querySelector('#hero-demo'), {
-  count, double, status, statusCls, parity,
-  increment: () => count.set(count() + 1),
-  decrement: () => count.set(count() - 1),
-  reset:     () => count.set(0),
-})
-</script>
+<script type="module" src="/assets/index.js"></script>
 
 
 <!-- ══════════════════════════════════════════════════════════
@@ -343,14 +328,14 @@ bind(document.querySelector(<span class="str">'#app'</span>), state)</code></pre
 <!-- ══════════════════════════════════════════════════════════
      CTA
      ══════════════════════════════════════════════════════════ -->
-<div class="panel" style="margin-top:48px; text-align:center; padding:40px;">
-  <div class="panel-title" style="text-align:center; border:none;">Ready to go?</div>
-  <p style="margin-bottom:24px; color:var(--text);">
+<div class="panel panel--cta">
+  <div class="panel-title panel-title--center">Ready to go?</div>
+  <p class="cta-text">
     The Flight Manual has every directive, API, and pattern with live demos.<br>
     The Simulations show complete working apps.
   </p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <a href="guide.html" class="btn btn-primary">Read the Flight Manual</a>
-    <a href="examples/todo.html" class="btn">Launch Simulations</a>
+  <div class="cta-actions">
+    <a href="/guide/" class="btn btn-primary">Read the Flight Manual</a>
+    <a href="/examples/todo/" class="btn">Launch Simulations</a>
   </div>
 </div>

@@ -1,5 +1,5 @@
 {
-  "name": "@joeyguerra/rdbljs",
+  "name": "@devchitchat/rdbljs",
   "module": "index.js",
   "type": "module",
   "files": [
@@ -8,8 +8,10 @@
     "README.md"
   ],
   "scripts": {
-    "docs": "bun run bin/build.js",
-    "docs:serve": "bun run bin/build.js && bunx serve dist"
+    "test": "bun test",
+    "docs:build:github": "cp src/rdbl.js docs/pages/public/assets/rdbl.js && bunx @devchitchat/index97@1.1.0 build docs/pages --out dist --path-prefix /rdbljs/",
+    "docs:build": "cp src/rdbl.js docs/pages/public/assets/rdbl.js && bunx @devchitchat/index97@1.1.0 build docs/pages --out dist",
+    "docs:serve": "cp src/rdbl.js docs/pages/public/assets/rdbl.js && bunx @devchitchat/index97@1.1.0 build docs/pages --out dist && bunx @devchitchat/index97@1.1.0 serve dist"
   },
   "devDependencies": {
     "@types/bun": "latest"

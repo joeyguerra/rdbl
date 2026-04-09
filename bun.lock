@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@joeyguerra/rdbljs",
+      "name": "@devchitchat/rdbljs",
       "devDependencies": {
         "@types/bun": "latest",
       },

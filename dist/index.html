@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mission Control — rdbl</title>
+  <title>Mission Control — rdbl.js</title>
   <meta name="description" content="Signals-based reactivity wired directly to plain HTML. No build step. No virtual DOM. No template expressions. Just readable markup and a single file.">
-  <meta property="og:title" content="Mission Control — rdbl">
+  <meta property="og:title" content="Mission Control">
   <meta property="og:description" content="Signals-based reactivity wired directly to plain HTML. No build step. No virtual DOM. No template expressions. Just readable markup and a single file.">
   <meta name="theme-color" content="#080b08">
-  <link rel="stylesheet" href="./assets/style.css">
-  <script>window.__RDBL__ = './assets/rdbl.js'</script>
+  <link rel="stylesheet" href="/assets/style.css">
+  <meta name="nav-active" content="home">
 </head>
 <body>
 
   <!-- ══ HEADER ══════════════════════════════════════════════ -->
   <header class="site-header">
-    <a href="./index.html" class="site-logo">
+    <a href="/index.html" class="site-logo">
       <div class="logo-patch">◎</div>
       <div>
         <span class="logo-text">rdbl</span>
@@ -24,9 +24,9 @@
     </a>
 
     <nav class="site-nav" id="site-nav">
-      <a href="./index.html"          data-nav="home">Mission Control</a>
-      <a href="./guide.html"           data-nav="guide">Flight Manual</a>
-      <a href="./examples/counter.html" data-nav="examples">Simulations</a>
+      <a href="/index.html" data-nav="home">Mission Control</a>
+      <a href="/guide/" data-nav="guide">Flight Manual</a>
+      <a href="/examples/counter/" data-nav="examples">Simulations</a>
       <a href="https://github.com/joeyguerra/rdbljs" target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
 
@@ -52,20 +52,20 @@
     <!-- ── Sidebar ── -->
     <aside class="sidebar">
       <p class="sidebar-section-label">Navigation</p>
-      <a href="./index.html"  data-nav="home">◈ Mission Control</a>
-      <a href="./guide.html"  data-nav="guide">◈ Flight Manual</a>
+      <a href="/index.html"  data-nav="home">◈ Mission Control</a>
+      <a href="/guide/"  data-nav="guide">◈ Flight Manual</a>
 
       <p class="sidebar-section-label">Simulations</p>
-      <a href="./examples/counter.html" class="sidebar-sub" data-nav="counter">Counter</a>
-      <a href="./examples/todo.html"    class="sidebar-sub" data-nav="todo">Todo Mission</a>
-      <a href="./examples/search.html"  class="sidebar-sub" data-nav="search">Search &amp; Filter</a>
+      <a href="/examples/counter/" class="sidebar-sub" data-nav="counter">Counter</a>
+      <a href="/examples/todo/"    class="sidebar-sub" data-nav="todo">Todo Mission</a>
+      <a href="/examples/search/"  class="sidebar-sub" data-nav="search">Search &amp; Filter</a>
 
       <p class="sidebar-section-label">Reference</p>
-      <a href="./guide.html#signals"    class="sidebar-sub">Signals</a>
-      <a href="./guide.html#directives" class="sidebar-sub">Directives</a>
-      <a href="./guide.html#bind"       class="sidebar-sub">bind()</a>
-      <a href="./guide.html#islands"    class="sidebar-sub">Islands</a>
-      <a href="./guide.html#ssr"        class="sidebar-sub">SSR Hydration</a>
+      <a href="/guide/#signals"    class="sidebar-sub">Signals</a>
+      <a href="/guide/#directives" class="sidebar-sub">Directives</a>
+      <a href="/guide/#bind"       class="sidebar-sub">bind()</a>
+      <a href="/guide/#islands"    class="sidebar-sub">Islands</a>
+      <a href="/guide/#ssr"        class="sidebar-sub">SSR Hydration</a>
 
       <p class="sidebar-section-label">Resources</p>
       <a href="https://github.com/joeyguerra/rdbljs" class="sidebar-sub">GitHub ↗</a>
@@ -91,13 +91,13 @@
   </p>
 
   <div class="hero-actions">
-    <a href="guide.html" class="btn btn-primary">Launch Flight Manual ▶</a>
-    <a href="examples/todo.html" class="btn">View Simulations</a>
+    <a href="/guide/" class="btn btn-primary">Launch Flight Manual ▶</a>
+    <a href="/examples/todo/" class="btn">View Simulations</a>
   </div>
 
   <div class="install-box">
     <span class="install-prompt">$</span>
-    <span class="install-cmd">bun add @joeyguerra/rdbl</span>
+    <span class="install-cmd">bun add @devchitchat/rdbl</span>
   </div>
 
   <div class="hero-stats">
@@ -194,22 +194,7 @@ bind(document.querySelector(<span class="str">'#hero-demo'</span>), {
   </div>
 </div>
 
-<script type="module">
-const { bind, signal, computed } = await import(window.__RDBL__)
-
-const count     = signal(0)
-const double    = computed(() => count() * 2)
-const status    = computed(() => count() > 0 ? 'NOMINAL' : count() < 0 ? 'ABORT' : 'STANDBY')
-const statusCls = computed(() => count() > 0 ? 'green readout-value' : count() < 0 ? 'red readout-value' : 'amber readout-value')
-const parity    = computed(() => count() % 2 === 0 ? 'EVEN' : 'ODD')
-
-bind(document.querySelector('#hero-demo'), {
-  count, double, status, statusCls, parity,
-  increment: () => count.set(count() + 1),
-  decrement: () => count.set(count() - 1),
-  reset:     () => count.set(0),
-})
-</script>
+<script type="module" src="/assets/index.js"></script>
 
 
 <!-- ══════════════════════════════════════════════════════════
@@ -414,15 +399,15 @@ bind(document.querySelector(<span class="str">'#app'</span>), state)</code></pre
 <!-- ══════════════════════════════════════════════════════════
      CTA
      ══════════════════════════════════════════════════════════ -->
-<div class="panel" style="margin-top:48px; text-align:center; padding:40px;">
-  <div class="panel-title" style="text-align:center; border:none;">Ready to go?</div>
-  <p style="margin-bottom:24px; color:var(--text);">
+<div class="panel panel--cta">
+  <div class="panel-title panel-title--center">Ready to go?</div>
+  <p class="cta-text">
     The Flight Manual has every directive, API, and pattern with live demos.<br>
     The Simulations show complete working apps.
   </p>
-  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <a href="guide.html" class="btn btn-primary">Read the Flight Manual</a>
-    <a href="examples/todo.html" class="btn">Launch Simulations</a>
+  <div class="cta-actions">
+    <a href="/guide/" class="btn btn-primary">Read the Flight Manual</a>
+    <a href="/examples/todo/" class="btn">Launch Simulations</a>
   </div>
 </div>
     </main>
@@ -436,73 +421,7 @@ bind(document.querySelector(<span class="str">'#app'</span>), state)</code></pre
   </footer>
 
   <!-- ══ SCRIPTS ═════════════════════════════════════════════ -->
-  <script>
-    // Mission clock
-    const start = Date.now()
-    function tick() {
-      const s = Math.floor((Date.now() - start) / 1000)
-      const h = String(Math.floor(s / 3600)).padStart(2, '0')
-      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
-      const sec = String(s % 60).padStart(2, '0')
-      const el = document.getElementById('mission-clock')
-      if (el) el.textContent = `T+${h}:${m}:${sec}`
-    }
-    setInterval(tick, 1000)
-
-    // Active nav link
-    const nav = 'home'
-    if (nav) {
-      document.querySelectorAll('[data-nav="' + nav + '"]').forEach(el => {
-        el.classList.add('active')
-      })
-    }
-
-    // Simple tab switching utility (used by demo pages)
-    window.initTabs = function(groupEl) {
-      if (!groupEl) return
-      const btns  = groupEl.querySelectorAll('.tab-btn')
-      const panes = groupEl.querySelectorAll('.tab-pane')
-      btns.forEach((btn, i) => {
-        btn.addEventListener('click', () => {
-          btns.forEach(b => b.classList.remove('active'))
-          panes.forEach(p => p.classList.remove('active'))
-          btn.classList.add('active')
-          panes[i].classList.add('active')
-        })
-      })
-      if (btns[0]) btns[0].click()
-    }
-    document.querySelectorAll('.tab-group').forEach(window.initTabs)
-
-    // ── Mobile drawer ──────────────────────────────────────
-    const hamburger = document.getElementById('hamburger')
-    const sidebar   = document.querySelector('.sidebar')
-    const overlay   = document.getElementById('sidebar-overlay')
-
-    function openDrawer() {
-      sidebar.classList.add('open')
-      overlay.classList.add('open')
-      document.body.classList.add('drawer-open')
-      hamburger.setAttribute('aria-expanded', 'true')
-      hamburger.classList.add('open')
-    }
-    function closeDrawer() {
-      sidebar.classList.remove('open')
-      overlay.classList.remove('open')
-      document.body.classList.remove('drawer-open')
-      hamburger.setAttribute('aria-expanded', 'false')
-      hamburger.classList.remove('open')
-    }
-
-    hamburger?.addEventListener('click', () =>
-      sidebar.classList.contains('open') ? closeDrawer() : openDrawer()
-    )
-    overlay?.addEventListener('click', closeDrawer)
-    sidebar?.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer))
-
-    // Close on Escape
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer() })
-  </script>
+  <script src="/assets/layout.js" defer></script>
 
 </body>
 </html>

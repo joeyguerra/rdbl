@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{slot:title || rdbl.js}} — rdbl.js</title>
+  <meta name="description" content="{{slot:description}}">
+  <meta property="og:title" content="{{slot:title || rdbl.js}}">
+  <meta property="og:description" content="{{slot:description}}">
+  <meta name="theme-color" content="#080b08">
+  <link rel="stylesheet" href="/assets/style.css">
+  <meta name="nav-active" content="{{slot:navActive}}">
+</head>
+<body>
+
+  <!-- ══ HEADER ══════════════════════════════════════════════ -->
+  <header class="site-header">
+    <a href="/index.html" class="site-logo">
+      <div class="logo-patch">◎</div>
+      <div>
+        <span class="logo-text">rdbl</span>
+        <span class="logo-sub">Reactive DOM Binding Library</span>
+      </div>
+    </a>
+
+    <nav class="site-nav" id="site-nav">
+      <a href="/index.html" data-nav="home">Mission Control</a>
+      <a href="/guide/" data-nav="guide">Flight Manual</a>
+      <a href="/examples/counter/" data-nav="examples">Simulations</a>
+      <a href="https://github.com/joeyguerra/rdbljs" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+
+    <button class="hamburger" id="hamburger" aria-label="Open navigation" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <div class="header-status">
+      <span class="status-dot"></span>
+      <span>Systems Nominal</span>
+      <span id="mission-clock">T+00:00:00</span>
+    </div>
+  </header>
+
+  <!-- Drawer overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- ══ BODY ════════════════════════════════════════════════ -->
+  <div class="page-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+      <p class="sidebar-section-label">Navigation</p>
+      <a href="/index.html"  data-nav="home">◈ Mission Control</a>
+      <a href="/guide/"  data-nav="guide">◈ Flight Manual</a>
+
+      <p class="sidebar-section-label">Simulations</p>
+      <a href="/examples/counter/" class="sidebar-sub" data-nav="counter">Counter</a>
+      <a href="/examples/todo/"    class="sidebar-sub" data-nav="todo">Todo Mission</a>
+      <a href="/examples/search/"  class="sidebar-sub" data-nav="search">Search &amp; Filter</a>
+
+      <p class="sidebar-section-label">Reference</p>
+      <a href="/guide/#signals"    class="sidebar-sub">Signals</a>
+      <a href="/guide/#directives" class="sidebar-sub">Directives</a>
+      <a href="/guide/#bind"       class="sidebar-sub">bind()</a>
+      <a href="/guide/#islands"    class="sidebar-sub">Islands</a>
+      <a href="/guide/#ssr"        class="sidebar-sub">SSR Hydration</a>
+
+      <p class="sidebar-section-label">Resources</p>
+      <a href="https://github.com/joeyguerra/rdbljs" class="sidebar-sub">GitHub ↗</a>
+    </aside>
+
+    <!-- ── Main ── -->
+    <main class="main-content">
+      {{content}}
+    </main>
+
+  </div><!-- /page-layout -->
+
+  <!-- ══ FOOTER ══════════════════════════════════════════════ -->
+  <footer class="site-footer">
+    <span>rdbl — Reactive DOM Binding Library — MIT License</span>
+    <span class="footer-status">◉ Mission Status: Nominal</span>
+  </footer>
+
+  <!-- ══ SCRIPTS ═════════════════════════════════════════════ -->
+  <script src="/assets/layout.js" defer></script>
+
+</body>
+</html>

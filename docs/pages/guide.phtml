@@ -1,6 +1,6 @@
-<!-- title: Flight Manual -->
-<!-- nav: guide -->
-<!-- desc: Complete API reference for rdbl — signals, computed, effect, batch, directives, bind(), Islands, SSR hydration, and Context. -->
+<template data-slot="navActive">guide</template>
+<template data-slot="title">Flight Manual</template>
+<template data-slot="description">Complete API reference for rdbl — signals, computed, effect, batch, directives, bind(), Islands, SSR hydration, and Context.</template>
 
 <div class="page-intro">
   <h1>Flight Manual</h1>
@@ -117,25 +117,18 @@ batch(() =&gt; {
 <div class="demo-container">
   <div class="demo-label">Live Telemetry — model binding</div>
   <div class="demo">
-    <div id="model-demo" style="display:flex; flex-direction:column; gap:12px;">
-      <input placeholder="Type a mission name..." style="max-width:400px;">
-      <p style="color:var(--green); font-size:13px;">
-        You typed: "<span text="query" style="color:var(--amber)"></span>"
-        <span style="color:var(--text-dim)"> — length: </span>
-        <span text="length" style="color:var(--amber)"></span>
+    <div id="model-demo" class="demo-stack">
+      <input placeholder="Type a mission name..." class="demo-input">
+      <p class="demo-output">
+        You typed: "<span text="query" class="amber"></span>"
+        <span class="dim"> — length: </span>
+        <span text="length" class="amber"></span>
       </p>
     </div>
   </div>
 </div>
 
-<script type="module">
-const { bind, signal, computed } = await import(window.__RDBL__)
-const query  = signal('')
-const length = computed(() => query().length)
-const root   = document.querySelector('#model-demo')
-root.querySelector('input').setAttribute('model', 'query')
-bind(root, { query, length })
-</script>
+<script type="module" src="/assets/guide.js"></script>
 
 <h3><code>each="path" key="idPath"</code></h3>
 <p>Keyed list rendering. Requires a <code>&lt;template&gt;</code> child with the item markup. Efficiently diffs and reorders DOM nodes using the <code>key</code>.</p>

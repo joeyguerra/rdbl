@@ -1,9 +1,9 @@
-<!-- title: Counter — Simulations -->
-<!-- nav: counter -->
-<!-- desc: The Hello World of reactive UIs. A counter built with rdbl showing signal, computed, effect, and batch in 20 lines of JavaScript. -->
+<template data-slot="navActive">counter</template>
+<template data-slot="title">Counter — Simulations</template>
+<template data-slot="description">The Hello World of reactive UIs. A counter built with rdbl showing signal, computed, effect, and batch in 20 lines of JavaScript.</template>
 
 <div class="page-intro">
-  <h1>Simulation 01<br><span style="font-size:16px; letter-spacing:3px;">Counter</span></h1>
+  <h1>Simulation 01<br><span class="sim-subtitle">Counter</span></h1>
   <p>The Hello World of reactive UIs. Three signals, two computeds, three handlers. This is all of rdbl in 20 lines.</p>
 </div>
 
@@ -41,9 +41,9 @@
         </div>
       </div>
 
-      <div style="text-align:center; margin-top:24px;">
-        <div style="font-size:10px; letter-spacing:3px; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px;">Effect log</div>
-        <div id="effect-log" style="font-size:11px; color:var(--green-dim); min-height:20px; text-align:center;"></div>
+      <div class="effect-log-wrap">
+        <div class="effect-log-label">Effect log</div>
+        <div id="effect-log" class="effect-log"></div>
       </div>
     </div>
   </div>
@@ -116,55 +116,7 @@ bind(document.querySelector(<span class="str">'#counter-app'</span>), {
   </div>
 </div>
 
-<script type="module">
-const { bind, signal, computed, effect } = await import(window.__RDBL__)
-
-const count = signal(0)
-const log   = document.getElementById('effect-log')
-
-const double    = computed(() => count() * 2)
-const history   = signal('—')
-const status    = computed(() =>
-  count() > 0 ? 'NOMINAL' : count() < 0 ? 'ABORT' : 'STANDBY'
-)
-const statusCls = computed(() =>
-  count() > 0 ? 'readout-value green' :
-  count() < 0 ? 'readout-value red'   :
-                'readout-value amber'
-)
-
-// Log every change via effect
-let prev = 0
-effect(() => {
-  const c = count()
-  if (c !== 0 || prev !== 0) {
-    log.textContent = `count changed: ${prev} → ${c}`
-    setTimeout(() => { if (log.textContent.includes(`→ ${c}`) ) log.textContent = '' }, 2000)
-  }
-  prev = c
-})
-
-const recent = []
-bind(document.querySelector('#counter-app'), {
-  count, double, status, statusCls,
-  history,
-  increment() {
-    count.set(count() + 1)
-    recent.unshift(`+1 → ${count()}`)
-    history.set(recent.slice(0,3).join(', '))
-  },
-  decrement() {
-    count.set(count() - 1)
-    recent.unshift(`-1 → ${count()}`)
-    history.set(recent.slice(0,3).join(', '))
-  },
-  reset() {
-    count.set(0)
-    recent.length = 0
-    history.set('—')
-  },
-})
-</script>
+<script type="module" src="/assets/counter.js"></script>
 
 
 <!-- ══════════════════════════════════════════════════════════
@@ -205,7 +157,7 @@ count()        <span class="com">// 5</span></code></pre>
   There's no framework magic here. bind() is just a convenience that creates effects for you. You could wire everything manually with effect() and it would work identically. rdbl is transparent all the way down.
 </div>
 
-<div style="display:flex; gap:16px; margin-top:40px; flex-wrap:wrap;">
+<div class="page-nav-links">
   <a href="todo.html" class="btn btn-primary">Next: Todo Mission ▶</a>
   <a href="../guide.html" class="btn">Flight Manual</a>
 </div>
