@@ -75,11 +75,15 @@ batch(() =&gt; {
 
 <h3><code>text="path"</code></h3>
 <p>Sets <code>textContent</code>. Safe — no HTML injection.</p>
-<pre><code>&lt;span <span class="attr">text</span>="<span class="val">user.name</span>"&gt;&lt;/span&gt;
-&lt;p    <span class="attr">text</span>="<span class="val">summary</span>"&gt;&lt;/p&gt;</code></pre>
+<p>If the element already has text content when <code>bind()</code> is called, rdbl preserves it on the first render. Once the signal changes, the DOM updates normally. This means server-rendered text requires no special attributes — it just works.</p>
+<pre><code><span class="com">&lt;!-- Server-rendered: "Dev Hub" is preserved on bind, then updates reactively --&gt;</span>
+&lt;span <span class="attr">text</span>="<span class="val">name</span>"&gt;Dev Hub&lt;/span&gt;
+
+<span class="com">&lt;!-- Client-only: starts empty, signal sets the value immediately --&gt;</span>
+&lt;span <span class="attr">text</span>="<span class="val">user.name</span>"&gt;&lt;/span&gt;</code></pre>
 
 <h3><code>html="path"</code></h3>
-<p>Sets <code>innerHTML</code>. Use for trusted rich content.</p>
+<p>Sets <code>innerHTML</code>. Use for trusted rich content. Same auto-preservation behavior as <code>text</code> — existing content is kept on first bind.</p>
 <pre><code>&lt;div <span class="attr">html</span>="<span class="val">article.body</span>"&gt;&lt;/div&gt;</code></pre>
 
 <h3><code>show="path"</code></h3>
@@ -141,6 +145,14 @@ batch(() =&gt; {
       &lt;button <span class="attr">onclick</span>="<span class="val">remove</span>"&gt;✗&lt;/button&gt;
     &lt;/li&gt;
   &lt;/template&gt;
+&lt;/ul&gt;</code></pre>
+
+<h4>SSR-rendered lists — <code>data-key</code></h4>
+<p>For server-rendered lists, add <code>data-key</code> on each row with its item key value. rdbl adopts those DOM nodes into the live map on bind — no replacement on first render. The <code>&lt;template&gt;</code> is used only when new items are added after bind.</p>
+<pre><code>&lt;ul <span class="attr">each</span>="<span class="val">products</span>" <span class="attr">key</span>="<span class="val">id</span>"&gt;
+  &lt;li <span class="attr">data-key</span>="<span class="val">1</span>" <span class="attr">text</span>="<span class="val">name</span>"&gt;Widget A&lt;/li&gt;
+  &lt;li <span class="attr">data-key</span>="<span class="val">2</span>" <span class="attr">text</span>="<span class="val">name</span>"&gt;Widget B&lt;/li&gt;
+  &lt;template&gt;&lt;li <span class="attr">text</span>="<span class="val">name</span>"&gt;&lt;/li&gt;&lt;/template&gt;
 &lt;/ul&gt;</code></pre>
 
 <h3><code>on&lt;event&gt;="path"</code></h3>
@@ -306,34 +318,42 @@ Context.provide(document.body, { pageState })
 <!-- ══════════════════════════════════════════════════════════
      SSR HYDRATION
      ══════════════════════════════════════════════════════════ -->
-<h2 id="ssr">Server-Side Rendered Data</h2>
-<p>
-  rdbl works naturally with server-rendered HTML. The key rule: <strong>initialize your signals with server data before calling <code>bind()</code></strong>.
-  On first run, effects write the same values the server already rendered — the DOM doesn't flicker.
-</p>
+<h2 id="ssr">Server-Side Rendering</h2>
+<p>rdbl is designed for server-rendered HTML. Plain server-rendered content requires no special attributes — the library detects it automatically.</p>
 
-<h3>Server Side Rendered Template</h3>
-<p>{{greeting}} is interpolated and the client side code binds after it renders.</p>
-<pre>
-  <code>
-    <span class="com">&lt;!-- Server renders with template engine --&gt;</span>
-    &lt;div id="app" island="/components/Dashboard.js"&gt;
-    &lt;h1 <span class="attr">text</span>="<span class="val">greeting</span>"&gt;{{greeting}}&lt;/h1&gt;
-    &lt;/div&gt;</code></pre>
-  </code>
-</pre>
+<h3>Text and HTML — auto-preserved</h3>
+<p>If a <code>text</code> or <code>html</code> element has content when <code>bind()</code> is called, rdbl skips the first render and leaves the server-rendered content in place. Once the signal changes, reactive updates apply normally.</p>
+<pre><code><span class="com">&lt;!-- No special attributes — content preserved automatically on bind --&gt;</span>
+&lt;div id="app" island="/components/Dashboard.js"&gt;
+  &lt;h1 <span class="attr">text</span>="<span class="val">greeting</span>"&gt;Hello, Joey&lt;/h1&gt;
+  &lt;p  <span class="attr">text</span>="<span class="val">summary</span>"&gt;3 of 10 tasks complete&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+<pre><code><span class="com">// Initialize signals to match server-rendered values</span>
+<span class="kw">export default function</span> dashboard(root, window) {
+  <span class="kw">const</span> greeting = signal(<span class="str">'Hello, Joey'</span>)
+  <span class="kw">const</span> summary  = signal(<span class="str">'3 of 10 tasks complete'</span>)
+  <span class="kw">return</span> { greeting, summary }
+}</code></pre>
 
-<h3>Embedded JSON in a script tag</h3>
-<pre><code><span class="com">&lt;!-- Server renders this --&gt;</span>
+<h3>Lists — <code>data-key</code></h3>
+<p>For server-rendered lists, add <code>data-key</code> on each row matching its item key value. rdbl adopts those DOM nodes into its live map on bind — the existing rows stay in place and become reactive. The <code>&lt;template&gt;</code> is used only when new items are added after bind.</p>
+<pre><code>&lt;ul <span class="attr">each</span>="<span class="val">products</span>" <span class="attr">key</span>="<span class="val">id</span>"&gt;
+  &lt;li <span class="attr">data-key</span>="<span class="val">1</span>" <span class="attr">text</span>="<span class="val">name</span>"&gt;Widget A&lt;/li&gt;
+  &lt;li <span class="attr">data-key</span>="<span class="val">2</span>" <span class="attr">text</span>="<span class="val">name</span>"&gt;Widget B&lt;/li&gt;
+  &lt;template&gt;&lt;li <span class="attr">text</span>="<span class="val">name</span>"&gt;&lt;/li&gt;&lt;/template&gt;
+&lt;/ul&gt;</code></pre>
+
+<h3>Passing data from server to client</h3>
+<p><strong>Embedded JSON</strong> — embed state as JSON, read it before binding:</p>
+<pre><code><span class="com">&lt;!-- Server renders --&gt;</span>
 &lt;script type="application/json" id="page-data"&gt;
-  { "user": { "name": "Joey", "plan": "pro" }, "posts": [] }
+  { "user": { "name": "Joey", "plan": "pro" } }
 &lt;/script&gt;
 
 &lt;div id="app" island="/components/Dashboard.js"&gt;
-  &lt;h1 <span class="attr">text</span>="<span class="val">greeting</span>"&gt;&lt;/h1&gt;
+  &lt;h1 <span class="attr">text</span>="<span class="val">greeting</span>"&gt;Hello, Joey&lt;/h1&gt;
 &lt;/div&gt;</code></pre>
-<pre><code><span class="com">// /components/Dashboard.js</span>
-<span class="kw">import</span> { signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
+<pre><code><span class="kw">import</span> { signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
 
 <span class="kw">export default function</span> dashboard(root, window) {
   <span class="kw">const</span> raw      = JSON.parse(document.getElementById(<span class="str">'page-data'</span>).textContent)
@@ -342,12 +362,12 @@ Context.provide(document.body, { pageState })
   <span class="kw">return</span> { user, greeting }
 }</code></pre>
 
-<h3>Data attributes on the island root</h3>
+<p><strong>Data attributes</strong> — for smaller per-component values:</p>
 <pre><code>&lt;section <span class="attr">island</span>="<span class="val">/components/UserBadge.js</span>"
          data-name="Joey"
          data-plan="pro"&gt;
-  &lt;span <span class="attr">text</span>="<span class="val">name</span>"&gt;&lt;/span&gt;
-  &lt;span <span class="attr">cls</span>="<span class="val">badgeCls</span>" <span class="attr">text</span>="<span class="val">plan</span>"&gt;&lt;/span&gt;
+  &lt;span <span class="attr">text</span>="<span class="val">name</span>"&gt;Joey&lt;/span&gt;
+  &lt;span <span class="attr">cls</span>="<span class="val">badgeCls</span>" <span class="attr">text</span>="<span class="val">plan</span>"&gt;pro&lt;/span&gt;
 &lt;/section&gt;</code></pre>
 <pre><code><span class="kw">import</span> { signal, computed } <span class="kw">from</span> <span class="str">'rdbl'</span>
 
@@ -357,6 +377,11 @@ Context.provide(document.body, { pageState })
   <span class="kw">const</span> badgeCls = computed(() =&gt; <span class="str">`badge badge-<span class="kw">${</span>plan()<span class="kw">}</span>`</span>)
   <span class="kw">return</span> { name, plan, badgeCls }
 }</code></pre>
+
+<h3><code>data-ssr</code></h3>
+<p>For <code>show</code>, <code>attr</code>, <code>cls</code>, and <code>model</code> directives there is no content to inspect, so auto-detection doesn't apply. Use <code>data-ssr</code> on those elements to skip the first render when you can't initialize the signal to match the server-rendered state.</p>
+<pre><code>&lt;div  <span class="attr">show</span>="<span class="val">panelOpen</span>" <span class="attr">data-ssr</span>&gt;...&lt;/div&gt;
+&lt;a    <span class="attr">attr</span>="<span class="val">href:url</span>"   <span class="attr">data-ssr</span>&gt;Read more&lt;/a&gt;</code></pre>
 
 <h3>Hydrating from localStorage</h3>
 <pre><code><span class="kw">const</span> theme = signal(<span class="str">'light'</span>)
@@ -382,5 +407,5 @@ bind(document.querySelector(<span class="str">'#app'</span>), { theme, tasks })<
 
 <div class="callout green">
   <strong>The pattern</strong>
-  In all three cases: signals are the source of truth, the server (or storage) provides initial values, and <code>bind()</code> wires the already-correct state to the DOM.
+  Signals are the source of truth. The server (or storage) provides initial values. <code>bind()</code> wires the already-correct state to the DOM — plain server-rendered HTML, no special attributes required.
 </div>

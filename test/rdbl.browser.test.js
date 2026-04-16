@@ -9,10 +9,13 @@ function makePage(body, script) {
 ${body}
 <script type="module">
   const _w = []
+  const _logs = []
   const _orig = console.warn
+  const _origLog = console.log
   console.warn = (...a) => { _w.push(a.map(String).join(' ')); _orig(...a) }
+  console.log = (...a) => { _logs.push(a.map(String).join(' ')); _origLog(...a)}
   window.__rdblWarnings = () => JSON.stringify(_w.filter(w => w.includes('[rdbljs]')))
-
+  window.__rdblLogs = () => JSON.stringify(_logs.filter(w => w.includes('[rdbljs]')))
   ${rdblSrc.replace(/<\/script>/g, '<\\/script>')}
 
   ${script}
@@ -27,7 +30,7 @@ const ROUTES = {
   // ── data-ssr ──────────────────────────────────────────────────────────────
 
   '/ssr': makePage(
-    `<div each="hubs" key="hub_id" class="hub-group" data-ssr>
+    `<div each="hubs" key="hub_id" class="hub-group">
       <div class="hub-header">
         <span text="name" class="hub-name">Dev Hub</span>
       </div>
@@ -78,8 +81,8 @@ const ROUTES = {
   ),
 
   '/ssr-reactive': makePage(
-    `<div each="hubs" key="hub_id" data-ssr>
-      <span text="name" class="hub-name">Old SSR Name</span>
+    `<div each="hubs" key="hub_id">
+      <span id="ssrElementId" text="name" class="hub-name">Old SSR Name</span>
       <template>
         <span text="name" class="hub-name"></span>
       </template>
@@ -90,6 +93,38 @@ const ROUTES = {
     bind(document.querySelector('[each="hubs"]'), scope, { dev: true })
     window.__getName = () => document.querySelector('.hub-name').textContent
     window.__updateName = v => scope.hubs.set([{ hub_id: 1, name: v }])`
+  ),
+
+  '/ssr-reactive-just-render': makePage(
+    `<div each="hubs" key="hub_id">
+      <span id="ssrElementId" data-key="1" text="name" class="hub-name">Old SSR Name</span>
+      <template>
+        <span text="name" class="hub-name"></span>
+      </template>
+    </div>`,
+    `const scope = {
+      hubs: signal([{ hub_id: 1, name: '' }])
+    }
+    bind(document.querySelector('[each="hubs"]'), scope, { dev: true })
+    window.__getSsrElement = () => document.getElementById('ssrElementId').textContent`
+  ),
+
+  // ── each + data-key hydration ─────────────────────────────────────────────
+  // <template> used for new items; data-key rows hydrate the live Map so SSR
+  // nodes stay in place and become reactive without being replaced on bind.
+
+  '/each-data-key': makePage(
+    `<ul id="list" each="items" key="id">
+      <li data-key="1" text="name">Alpha</li>
+      <li data-key="2" text="name">Beta</li>
+      <template><li text="name"></li></template>
+    </ul>`,
+    `const scope = { items: signal([{ id: 1, name: 'Alpha' }, { id: 2, name: 'Beta' }]) }
+    bind(document.getElementById('list'), scope, { dev: true })
+    window.__itemTexts = () => JSON.stringify([...document.querySelectorAll('li')].map(e => e.textContent))
+    window.__addItem  = () => scope.items.set([...scope.items(), { id: 3, name: 'Gamma' }])
+    window.__removeFirst = () => scope.items.set(scope.items().slice(1))
+    window.__updateFirst = name => scope.items.set([{ id: 1, name }, ...scope.items().slice(1)])`
   ),
 
   // ── each ──────────────────────────────────────────────────────────────────
@@ -154,7 +189,7 @@ const ROUTES = {
   ),
 
   '/text-ssr-preserves': makePage(
-    `<span id="el" text="title" data-ssr>Server Title</span>`,
+    `<span id="el" text="title">Server Title</span>`,
     `const scope = { title: signal('Client Title') }
     bind(document.getElementById('el'), scope, { dev: true })
     window.__getText = () => document.getElementById('el').textContent
@@ -351,6 +386,10 @@ async function warnings(wv) {
   return JSON.parse(await wv.evaluate('window.__rdblWarnings()'))
 }
 
+async function logs(wv) {
+  return JSON.parse(await wv.evaluate('window.__rdblLogs()'))
+}
+
 async function flush(wv) {
   await wv.evaluate('new Promise(r => setTimeout(r, 20))')
 }
@@ -363,6 +402,13 @@ describe('data-ssr', () => {
       expect(await warnings(wv)).toEqual([])
     })
   )
+
+    test('data-ssr preserves ssr content and template child',
+    withPage('/ssr', async wv => {
+      expect.stringContaining('each="channels" requires a <template> child')
+    })
+  )
+
 
   test('warns when outer each has no data-ssr and inner each is missing a template',
     withPage('/missing-inner-template', async wv => {
@@ -378,6 +424,48 @@ describe('data-ssr', () => {
       await wv.evaluate('window.__updateName("Updated Name")')
       await flush(wv)
       expect(await wv.evaluate('window.__getName()')).toBe('Updated Name')
+    })
+  )
+
+  test("data-key alone preserves SSR content — no data-ssr required",
+    withPage('/ssr-reactive-just-render', async wv => {
+      // scope.name is '' but SSR shows 'Old SSR Name'; data-key infers skipFirst
+      expect(await wv.evaluate('window.__getSsrElement()')).toBe('Old SSR Name')
+    })
+  )
+})
+
+describe('each + data-key hydration', () => {
+  test('SSR rows stay in place on bind — no replacement on first render',
+    withPage('/each-data-key', async wv => {
+      // Both items come from scope data matching the SSR values.
+      // The key assertion: no warnings (no spurious "requires a <template>" etc.)
+      expect(await warnings(wv)).toEqual([])
+      expect(JSON.parse(await wv.evaluate('window.__itemTexts()'))).toEqual(['Alpha', 'Beta'])
+    })
+  )
+
+  test('reactive text updates work on hydrated rows',
+    withPage('/each-data-key', async wv => {
+      await wv.evaluate('window.__updateFirst("Alpha Updated")')
+      await flush(wv)
+      expect(JSON.parse(await wv.evaluate('window.__itemTexts()'))).toEqual(['Alpha Updated', 'Beta'])
+    })
+  )
+
+  test('new item added via signal uses the template',
+    withPage('/each-data-key', async wv => {
+      await wv.evaluate('window.__addItem()')
+      await flush(wv)
+      expect(JSON.parse(await wv.evaluate('window.__itemTexts()'))).toEqual(['Alpha', 'Beta', 'Gamma'])
+    })
+  )
+
+  test('removing an item via signal removes its row',
+    withPage('/each-data-key', async wv => {
+      await wv.evaluate('window.__removeFirst()')
+      await flush(wv)
+      expect(JSON.parse(await wv.evaluate('window.__itemTexts()'))).toEqual(['Beta'])
     })
   )
 })

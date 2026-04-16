@@ -108,15 +108,19 @@ Directives are plain HTML attributes. No special syntax — just a dot-separated
 
 ### `text="path"`
 
-Sets `textContent`.
+Sets `textContent`. If the element already has text content when `bind()` is called, rdbl preserves it on the first render — no attribute required. Once the signal changes, the DOM updates normally.
 
 ```html
+<!-- Server-rendered: "Dev Hub" is preserved on bind, then updates reactively -->
+<span text="name">Dev Hub</span>
+
+<!-- Client-only: starts empty, signal sets the value immediately -->
 <span text="user.name"></span>
 ```
 
 ### `html="path"`
 
-Sets `innerHTML`.
+Sets `innerHTML`. Same auto-preservation behavior as `text` — existing content is kept on first bind.
 
 ```html
 <div html="article.body"></div>
@@ -168,7 +172,7 @@ Two-way binding for form elements. Path must resolve to a signal.
 
 ### `each="path" key="idPath"`
 
-Keyed list rendering. Requires a `<template>` child. Efficiently diffs and reorders DOM nodes.
+Keyed list rendering. Requires a `<template>` child for new items. Efficiently diffs and reorders DOM nodes.
 
 ```html
 <ul each="todos" key="id">
@@ -183,6 +187,22 @@ Keyed list rendering. Requires a `<template>` child. Efficiently diffs and reord
 ```
 
 Inside list items, the scope includes all item properties directly, plus `$item` and `$index`.
+
+**SSR-rendered lists:** Add `data-key` on each server-rendered row matching the item's key value. rdbl adopts the existing DOM nodes into the live map — no replacement on first bind. The `<template>` is used only when new items are added.
+
+```html
+<ul each="items" key="id">
+  <li data-key="1" text="name">Alpha</li>
+  <li data-key="2" text="name">Beta</li>
+  <template><li text="name"></li></template>
+</ul>
+```
+
+```js
+// Initialize scope with the same data the server used
+const scope = { items: signal([{ id: 1, name: 'Alpha' }, { id: 2, name: 'Beta' }]) }
+bind(document.querySelector('ul'), scope)
+```
 
 ### `on<event>="path"`
 
@@ -434,52 +454,85 @@ Each island gets its own binding instance and can be disposed independently. Sha
 
 ---
 
-## Server-Side Rendered Data
+## Server-Side Rendering
 
-rdbl works naturally with server-rendered HTML. The key rule: **initialize your signals with server data before calling `bind()`**. On first run, effects write the same values the server already rendered — the DOM doesn't flicker.
+rdbl is designed to work with server-rendered HTML without flicker or replacement.
 
-### Embedded JSON in a script tag
+### Text and HTML — auto-preserved
 
-The server embeds initial state as JSON. The client reads it, hydrates signals, then binds.
+If a `text` or `html` element already has content when `bind()` is called, rdbl skips the first render and leaves the server-rendered content in place. Once the signal changes, normal reactive updates apply.
 
 ```html
-<!-- Server renders this -->
+<!-- No special attributes needed — content is auto-preserved on bind -->
+<h1 text="greeting">Hello, Joey</h1>
+<p text="summary">3 of 10 tasks complete</p>
+```
+
+```js
+// Initialize signals to match what the server rendered
+const scope = {
+  greeting: signal('Hello, Joey'),
+  summary: signal('3 of 10 tasks complete')
+}
+bind(document.querySelector('#app'), scope)
+```
+
+### Lists — `data-key`
+
+For server-rendered lists, add `data-key` on each row with its item key value. rdbl adopts those DOM nodes into the live map on bind — existing nodes stay in place and become reactive. The `<template>` is used only for items added after bind.
+
+```html
+<ul each="products" key="id">
+  <li data-key="1" text="name">Widget A</li>
+  <li data-key="2" text="name">Widget B</li>
+  <template><li text="name"></li></template>
+</ul>
+```
+
+```js
+const scope = {
+  products: signal([
+    { id: 1, name: 'Widget A' },
+    { id: 2, name: 'Widget B' }
+  ])
+}
+bind(document.querySelector('ul'), scope)
+```
+
+### Passing data from server to client
+
+**Embedded JSON** — embed state as JSON, read it before binding:
+
+```html
 <script type="application/json" id="page-data">
-  { "user": { "name": "Joey", "plan": "pro" }, "posts": [...] }
+  { "user": { "name": "Joey", "plan": "pro" } }
 </script>
 
 <div id="app" island="/components/Dashboard.js">
-  <h1 text="greeting"></h1>
-  <span text="user.plan"></span>
+  <h1 text="greeting">Hello, Joey</h1>
 </div>
 ```
 
 ```js
 // /components/Dashboard.js
-import { signal, computed, Context } from 'rdbl'
+import { signal, computed } from 'rdbl'
 
 export default function dashboard(root, window) {
   const raw = JSON.parse(document.getElementById('page-data').textContent)
-
   const user = signal(raw.user)
-  const posts = signal(raw.posts)
-
   const greeting = computed(() => `Hello, ${user().name}`)
-
-  return { user, posts, greeting }
+  return { user, greeting }
 }
 ```
 
-### Data attributes on the island root
-
-For smaller per-component values, the server can write initial data directly onto the island element.
+**Data attributes** — for smaller per-component values:
 
 ```html
 <section island="/components/UserBadge.js"
          data-name="Joey"
          data-plan="pro">
-  <span text="name"></span>
-  <span cls="badgeCls" text="plan"></span>
+  <span text="name">Joey</span>
+  <span cls="badgeCls" text="plan">pro</span>
 </section>
 ```
 
@@ -491,41 +544,40 @@ export default function userBadge(root, window) {
   const name = signal(root.dataset.name)
   const plan = signal(root.dataset.plan)
   const badgeCls = computed(() => `badge badge-${plan()}`)
-
   return { name, plan, badgeCls }
 }
 ```
 
+### `data-ssr`
+
+For `show`, `attr`, `cls`, and `model` directives there is no content to inspect, so auto-detection doesn't apply. Use `data-ssr` on those elements to skip the first render when you can't initialize the signal to match the server-rendered state.
+
+```html
+<div show="panelOpen" data-ssr>...</div>
+<a attr="href:url" data-ssr>Read more</a>
+```
+
 ### Hydrating from storage
 
-For client-persisted state (e.g. `localStorage`), read and apply the stored snapshot before binding. Effects fire with the restored values on first run, so the UI reflects the last known state immediately.
-
 ```js
-import { bind, signal, effect, Context } from 'rdbl'
+import { bind, signal, effect } from 'rdbl'
 
 const theme = signal('light')
 const tasks = signal([])
 
-// Hydrate signals from storage before bind()
 const stored = localStorage.getItem('app-state')
 if (stored) {
-  const snapshot = JSON.parse(stored)
-  theme.set(snapshot.theme ?? 'light')
-  tasks.set(snapshot.tasks ?? [])
+  const snap = JSON.parse(stored)
+  theme.set(snap.theme ?? 'light')
+  tasks.set(snap.tasks ?? [])
 }
 
-// Persist on every change
 effect(() => {
-  localStorage.setItem('app-state', JSON.stringify({
-    theme: theme(),
-    tasks: tasks()
-  }))
+  localStorage.setItem('app-state', JSON.stringify({ theme: theme(), tasks: tasks() }))
 })
 
 bind(document.querySelector('#app'), { theme, tasks })
 ```
-
-In all three patterns the principle is the same: signals are the source of truth, the server (or storage) provides the initial values, and `bind()` wires the already-correct state to the DOM.
 
 ---
 
