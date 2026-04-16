@@ -442,11 +442,13 @@ function bindText(root, scope, opt) {
     if (isManagedByEach(el)) continue
     if (!el.hasAttribute('text')) continue
     const path = el.getAttribute('text')
+    let skipFirst = el.hasAttribute('data-ssr')
 
     const stop = effect(() => {
       const v = readValue(scope, path)
       const value = readBoundValue(scope, path, el)
       if (value === undefined) warn(opt.dev, `text="${path}" resolved to undefined${bindingDebugContext(el)}`)
+      if (skipFirst) { skipFirst = false; return }
       el.textContent = value ?? ''
     })
     stops.push(stop)
@@ -461,9 +463,11 @@ function bindHtml(root, scope, opt) {
     if (isManagedByEach(el)) continue
     if (!el.hasAttribute('html')) continue
     const path = el.getAttribute('html')
+    let skipFirst = el.hasAttribute('data-ssr')
 
     const stop = effect(() => {
       const v = readBoundValue(scope, path, el)
+      if (skipFirst) { skipFirst = false; return }
       el.innerHTML = v ?? ''
     })
     stops.push(stop)
@@ -479,8 +483,10 @@ function bindShow(root, scope, opt) {
     if (!el.hasAttribute('show')) continue
     const path = el.getAttribute('show')
 
+    let skipFirst = el.hasAttribute('data-ssr')
     const stop = effect(() => {
       const v = !!readBoundValue(scope, path, el)
+      if (skipFirst) { skipFirst = false; return }
       if (isDialogElement(el)) {
         setDialogShown(el, v)
         return
@@ -510,8 +516,10 @@ function bindClass(root, scope, opt) {
     if (isManagedByEach(el)) continue
     if (!el.hasAttribute('cls')) continue
     const path = el.getAttribute('cls')
+    let skipFirst = el.hasAttribute('data-ssr')
     const stop = effect(() => {
       const v = readBoundValue(scope, path, el)
+      if (skipFirst) { skipFirst = false; return }
       if (typeof v === 'string') {
         el.className = v
       } else if (v && typeof v === 'object') {
@@ -535,9 +543,11 @@ function bindAttr(root, scope, opt) {
     if (!el.hasAttribute('attr')) continue
     const spec = el.getAttribute('attr')
     const pairs = parseAttrSpec(spec)
+    let skipFirst = el.hasAttribute('data-ssr')
     const stop = effect(() => {
-      for (const [name, path] of pairs) {
-        const v = readBoundValue(scope, path, el)
+      const values = pairs.map(([name, path]) => [name, readBoundValue(scope, path, el)])
+      if (skipFirst) { skipFirst = false; return }
+      for (const [name, v] of values) {
         if (v === false || v == null) el.removeAttribute(name)
         else el.setAttribute(name, String(v))
       }
@@ -575,8 +585,10 @@ function bindModel(root, scope, opt) {
     offs.push(() => el.removeEventListener(evt, handler))
 
     // state -> UI
+    let skipFirst = el.hasAttribute('data-ssr')
     const stop = effect(() => {
       const v = sig()
+      if (skipFirst) { skipFirst = false; return }
       setModelValue(el, v)
     })
     stops.push(stop)
@@ -657,8 +669,15 @@ function bindEach(root, scope, opt, { getCtx, bindSubtree }) {
 
     // Prepare host
     const marker = document.createComment(`each:${listPath}`)
-    host.innerHTML = ''
-    host.append(marker, tpl)
+    if (host.hasAttribute('data-ssr')) {
+      // Preserve SSR-rendered rows: insert marker before them, ensure tpl is last.
+      // The first effect run will replace them synchronously (no flash).
+      host.insertBefore(marker, host.firstChild)
+      host.appendChild(tpl)
+    } else {
+      host.innerHTML = ''
+      host.append(marker, tpl)
+    }
 
     let live = new Map() // key -> entry
 
